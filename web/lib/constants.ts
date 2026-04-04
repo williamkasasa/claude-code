@@ -88,6 +88,24 @@ const HF_QWEN_VL_7B: ModelOption = {
   description: "Vision-capable model for HMI and screenshot review",
 };
 
+const HF_GEMMA4_E2B: ModelOption = {
+  id: "google/gemma-4-E2B-it",
+  label: "Gemma 4 E2B",
+  description: "Compact multimodal open-weight model for local gateways and experimentation",
+};
+
+const HF_GEMMA4_E4B: ModelOption = {
+  id: "google/gemma-4-E4B-it",
+  label: "Gemma 4 E4B",
+  description: "Stronger multimodal Gemma 4 variant for local or hosted-compatible inference",
+};
+
+const HF_GEMMA4_26B: ModelOption = {
+  id: "google/gemma-4-26B-A4B-it",
+  label: "Gemma 4 26B A4B",
+  description: "Higher-capability Gemma 4 option for vLLM or OpenAI-compatible serving",
+};
+
 const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
   anthropic: [
     { id: "claude-opus-4-6", label: "Claude Opus 4.6", description: "Most capable" },
@@ -97,13 +115,16 @@ const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
   "github-models": [
     { id: "openai/gpt-4.1-mini", label: "GPT-4.1 Mini", description: "Fast hosted GitHub Models option" },
     { id: "openai/gpt-4.1", label: "GPT-4.1", description: "General-purpose hosted reasoning model" },
-    HF_QWEN_CODER_14B,
-    HF_QWEN_VL_7B,
+    { id: "openai/gpt-4.1-nano", label: "GPT-4.1 Nano", description: "Lower-cost hosted GitHub Models option" },
+    { id: "openai/gpt-4o-mini", label: "GPT-4o mini", description: "Compact multimodal hosted model" },
+    { id: "openai/gpt-4o", label: "GPT-4o", description: "Stronger multimodal hosted model" },
   ],
   openai: [
     { id: "gpt-4.1-mini", label: "gpt-4.1-mini", description: "Fast hosted OpenAI option" },
     { id: "gpt-4.1", label: "gpt-4.1", description: "General-purpose hosted reasoning model" },
+    { id: "gpt-4.1-nano", label: "gpt-4.1-nano", description: "Lower-cost hosted OpenAI option" },
     { id: "gpt-4o-mini", label: "gpt-4o-mini", description: "Compact multimodal model" },
+    { id: "gpt-4o", label: "gpt-4o", description: "Higher-capability multimodal model" },
   ],
   "openai-compatible": [
     HF_QWEN_CODER_7B,
@@ -111,6 +132,9 @@ const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
     HF_QWEN_CODER_32B,
     HF_QWEN3_CODER_30B,
     HF_QWEN_VL_7B,
+    HF_GEMMA4_E2B,
+    HF_GEMMA4_E4B,
+    HF_GEMMA4_26B,
     { id: "meta-llama/Meta-Llama-3.1-8B-Instruct", label: "Llama 3.1 8B Instruct", description: "General local assistant" },
   ],
   ollama: [
@@ -125,6 +149,9 @@ const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
     HF_QWEN_CODER_32B,
     HF_QWEN3_CODER_30B,
     HF_QWEN_VL_7B,
+    HF_GEMMA4_E2B,
+    HF_GEMMA4_E4B,
+    HF_GEMMA4_26B,
     { id: "meta-llama/Meta-Llama-3.1-8B-Instruct", label: "Llama 3.1 8B Instruct", description: "Common vLLM deployment" },
   ],
 };
