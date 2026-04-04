@@ -12,6 +12,7 @@ test.describe("Provider switching and Buddy panel", () => {
   test("switch provider updates model default", async ({ page }) => {
     await page.getByRole("banner").getByRole("button", { name: "Settings" }).click();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await page.getByRole("button", { name: "API & Auth" }).click();
     await page.getByRole("combobox", { name: "Provider" }).selectOption("openai");
     await expect(page.getByText("Direct hosted OpenAI chat-completions endpoint")).toBeVisible();
     await expect(page.getByRole("banner").getByRole("combobox", { name: "Model" })).toHaveValue(
