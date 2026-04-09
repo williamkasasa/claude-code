@@ -11,7 +11,7 @@
     "gate:vision-all": "npm run gate:vision-caption && npm run gate:vision-ocr && npm run gate:vision-screen-review"
   },
   "devDependencies": {
-    "axios": "^1.12.2",
+    "axios": "^1.15.0",
     "promptfoo": "^0.110.0",
     "sharp": "^0.33.5"
   }
