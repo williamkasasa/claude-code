@@ -9,10 +9,9 @@ description = "Clean-room backend contracts and research orchestrator scaffoldin
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "AG Solution" }]
-dependencies = []
-# Optional: tracing and instrumentation for observability. These are best-effort
-# -- the code will run even if these packages are not installed.
 dependencies = [
+	# Optional tracing and instrumentation for observability. The backend keeps
+	# running without these packages when imports are unavailable at runtime.
 	"opentelemetry-sdk>=1.18.0",
 	"opentelemetry-exporter-otlp>=1.18.0",
 	"opentelemetry-instrumentation-requests>=1.18.0",

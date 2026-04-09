@@ -22,16 +22,30 @@ function githubHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-async function proxyToBackend(request: NextRequest) {
+async function proxyToBackend(request: Request) {
   const backendUrl = process.env.AGCLAW_BACKEND_URL?.trim();
   if (!backendUrl) {
     return null;
   }
-
-  const target = `${backendUrl.replace(/\/+$/, "")}/api/provider-health?${request.nextUrl.searchParams.toString()}`;
-  const response = await fetch(target, { cache: "no-store" });
-  const payload = await response.text();
-  return new NextResponse(payload, {
+  const body = await request.text();
+  let response: Response;
+  try {
+    response = await fetch(`${backendUrl.replace(/\/+$/, "")}/api/provider-health`, {
+      method: "POST",
+      headers: {
+        "Content-Type": request.headers.get("Content-Type") ?? "application/json",
+      },
+      body,
+      cache: "no-store",
+      signal: request.signal,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Backend probe failed" },
+      { status: 502 }
+    );
+  }
+  return new NextResponse(response.body, {
     status: response.status,
     headers: {
       "Content-Type": response.headers.get("Content-Type") ?? "application/json",
@@ -39,15 +53,20 @@ async function proxyToBackend(request: NextRequest) {
   });
 }
 
-export async function GET(request: NextRequest) {
-  const proxied = await proxyToBackend(request);
+export async function POST(request: NextRequest) {
+  const proxied = await proxyToBackend(request.clone());
   if (proxied) {
     return proxied;
   }
 
-  const provider = (request.nextUrl.searchParams.get("provider") as ChatProvider | null) ?? "anthropic";
-  const apiUrl = normalizeBaseUrl(request.nextUrl.searchParams.get("apiUrl"), provider);
-  const apiKey = request.nextUrl.searchParams.get("apiKey") ?? "";
+  const payload = (await request.json().catch(() => ({}))) as {
+    provider?: ChatProvider;
+    apiUrl?: string;
+    apiKey?: string;
+  };
+  const provider = payload.provider ?? "anthropic";
+  const apiUrl = normalizeBaseUrl(payload.apiUrl ?? null, provider);
+  const apiKey = payload.apiKey ?? "";
 
   try {
     const probes: Probe[] = provider === "anthropic"
@@ -72,6 +91,7 @@ export async function GET(request: NextRequest) {
         method: "GET",
         headers: probe.headers,
         cache: "no-store",
+        signal: request.signal,
       });
 
       lastStatus = response.status;

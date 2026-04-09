@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -34,14 +34,14 @@ export function ApiSettings() {
     setLatencyMs(null);
     const start = Date.now();
     try {
-      const params = new URLSearchParams({
-        provider: settings.provider,
-        apiUrl: settings.apiUrl,
-      });
-      if (settings.apiKey) {
-        params.set("apiKey", settings.apiKey);
-      }
-      const response = await fetch(`/api/provider-health?${params.toString()}`, {
+      const response = await fetch("/api/provider-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: settings.provider,
+          apiUrl: settings.apiUrl,
+          apiKey: settings.apiKey || undefined,
+        }),
         signal: AbortSignal.timeout(5000),
       });
       setLatencyMs(Date.now() - start);
@@ -102,7 +102,7 @@ export function ApiSettings() {
 
       <SettingRow
         label="Provider"
-        description="Select the upstream model API. OpenAI-compatible covers local gateways, proxies, and vLLM-style servers."
+        description="Select the upstream model API. OpenAI-compatible covers local gateways, proxies, LiteLLM, and vLLM-style servers."
         stack
       >
         <select
@@ -120,18 +120,10 @@ export function ApiSettings() {
             </option>
           ))}
         </select>
-        {selectedProvider && (
-          <p className="text-xs text-surface-500">{selectedProvider.description}</p>
-        )}
+        {selectedProvider && <p className="text-xs text-surface-500">{selectedProvider.description}</p>}
       </SettingRow>
 
-      <SettingRow
-        label="API key"
-        description={
-          getProviderHelpText(settings.provider)
-        }
-        stack
-      >
+      <SettingRow label="API key" description={getProviderHelpText(settings.provider)} stack>
         <div className="text-xs text-surface-500">{getProviderKeyLabel(settings.provider)}</div>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -183,21 +175,19 @@ export function ApiSettings() {
       >
         <select
           value={settings.model}
-          onChange={(e) => updateSettings({ model: e.target.value })}
+          onChange={(event) => updateSettings({ model: event.target.value })}
           aria-label="Model"
           className={cn(
             "w-full rounded-md border border-surface-700 bg-surface-800 px-3 py-2 text-sm",
             "text-surface-200 focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
           )}
         >
-          {getModelOptions(settings.provider).map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label} — {m.id}
-            </option>
+          {getModelOptions(settings.provider).map((model) => (
+            <option key={model.id} value={model.id}>{`${model.label} - ${model.id}`}</option>
           ))}
         </select>
         <p className="text-xs text-surface-500">
-          {getModelOptions(settings.provider).find((m) => m.id === settings.model)?.description ?? ""}
+          {getModelOptions(settings.provider).find((model) => model.id === settings.model)?.description ?? ""}
         </p>
       </SettingRow>
 

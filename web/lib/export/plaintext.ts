@@ -40,7 +40,7 @@ export function toPlainText(conv: Conversation, options: ExportOptions): string 
               : extractTextContent(block.content);
           const text =
             !options.includeFileContents && raw.length > 500
-              ? raw.slice(0, 500) + " â€¦[truncated]"
+              ? raw.slice(0, 500) + " ...[truncated]"
               : raw;
           parts.push(`[Tool Result${block.is_error ? " (error)" : ""}]\n${text}`);
         }

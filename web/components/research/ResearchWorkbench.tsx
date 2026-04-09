@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, BookOpenText, Eye, FlaskConical, Wand2, X } from "lucide-react";
 import { useChatStore } from "@/lib/store";
 import { useNotificationStore } from "@/lib/notifications";
@@ -42,6 +42,7 @@ const DEFAULT_SCREEN_NOTES = "Alarm banner visible. Manual mode lit. Batch 42 re
 export function ResearchWorkbench() {
   const { researchOpen, closeResearch } = useChatStore();
   const addNotification = useNotificationStore((state) => state.addNotification);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const [activeSection, setActiveSection] = useState<ResearchSection>("orchestrate");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -162,6 +163,23 @@ export function ResearchWorkbench() {
     }
   }, [loadDatasetCatalog, loadHistory, researchOpen]);
 
+  useEffect(() => {
+    if (!researchOpen) {
+      return;
+    }
+
+    closeButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeResearch();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closeResearch, researchOpen]);
+
   const handleScreenFileChange = useCallback(async (file: File | null) => {
     if (!file) {
       setScreenImageName("");
@@ -185,8 +203,9 @@ export function ResearchWorkbench() {
       return (
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Research prompt</label>
+            <label htmlFor="research-orchestrate-prompt" className="mb-2 block text-sm font-medium text-surface-200">Research prompt</label>
             <textarea
+              id="research-orchestrate-prompt"
               value={orchestratePrompt}
               onChange={(event) => setOrchestratePrompt(event.target.value)}
               rows={5}
@@ -206,7 +225,6 @@ export function ResearchWorkbench() {
                     model: "qwen2.5-coder:7b",
                     roles: ["plc-analyst", "devops", "safety"],
                     context: {
-                      workspace_root: "D:/OneDrive - AG SOLUTION/claude-code",
                       project_name: "ag-claw",
                       safety_mode: "advisory-only",
                     },
@@ -287,67 +305,69 @@ export function ResearchWorkbench() {
                   </div>
                 ))}
               </div>
-              <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
-                <div className="mb-3 text-xs uppercase tracking-wide text-surface-500">Recent orchestration runs</div>
-                <div className="space-y-3">
-                  {orchestrationHistory.length === 0 ? (
-                    <div className="text-surface-500">No persisted orchestration history yet.</div>
-                  ) : (
-                    orchestrationHistory.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => void loadHistoryDetail(item.detail_id || item.id)}
-                        className="w-full rounded-md border border-surface-800 bg-surface-950/80 p-3 text-left transition-colors hover:border-surface-700"
-                      >
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-surface-500">
-                          <span>{new Date(item.created_at).toLocaleString()}</span>
-                          <span>{item.provider}</span>
-                          <span>{item.model}</span>
-                          <span>{item.artifact_count} artifacts</span>
-                        </div>
-                        <div className="mt-2 font-medium text-surface-200">{item.summary}</div>
-                        <p className="mt-1 text-surface-400">{item.prompt}</p>
-                      </button>
-                    ))
-                  )}
+            </div>
+          )}
+          <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+            <div className="mb-3 text-xs uppercase tracking-wide text-surface-500">Recent orchestration runs</div>
+            <div className="space-y-3">
+              {orchestrationHistory.length === 0 ? (
+                <div className="text-surface-500">No persisted orchestration history yet.</div>
+              ) : (
+                orchestrationHistory.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void loadHistoryDetail(item.detail_id || item.id)}
+                    className="w-full rounded-md border border-surface-800 bg-surface-950/80 p-3 text-left transition-colors hover:border-surface-700"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                      <span>{new Date(item.created_at).toLocaleString()}</span>
+                      <span>{item.provider}</span>
+                      <span>{item.model}</span>
+                      <span>{item.artifact_count} artifacts</span>
+                    </div>
+                    <div className="mt-2 font-medium text-surface-200">{item.summary}</div>
+                    <p className="mt-1 text-surface-400">{item.prompt}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          {selectedHistoryDetail && (
+            <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-surface-500">Persisted orchestration detail</div>
+                  <div className="mt-1 font-medium text-surface-100">{selectedHistoryDetail.summary}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHistoryDetail(null)}
+                  className="rounded-md border border-surface-700 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800 hover:text-surface-100"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-surface-500">Prompt</div>
+                  <p className="mt-2 text-surface-300">{selectedHistoryDetail.prompt}</p>
+                  <div className="mt-4 text-xs uppercase tracking-wide text-surface-500">Follow-up actions</div>
+                  <ul className="mt-2 space-y-2 text-surface-300">
+                    {selectedHistoryDetail.follow_up_actions.map((item) => (
+                      <li key={item}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-surface-500">Persisted findings</div>
+                  <ul className="mt-2 space-y-2 text-surface-300">
+                    {selectedHistoryDetail.findings.map((item) => (
+                      <li key={item}>- {item}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              {selectedHistoryDetail && (
-                <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-surface-500">Persisted orchestration detail</div>
-                      <div className="mt-1 font-medium text-surface-100">{selectedHistoryDetail.summary}</div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedHistoryDetail(null)}
-                      className="rounded-md border border-surface-700 px-3 py-1 text-xs text-surface-300 hover:bg-surface-800 hover:text-surface-100"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-surface-500">Prompt</div>
-                      <p className="mt-2 text-surface-300">{selectedHistoryDetail.prompt}</p>
-                      <div className="mt-4 text-xs uppercase tracking-wide text-surface-500">Follow-up actions</div>
-                      <ul className="mt-2 space-y-2 text-surface-300">
-                        {selectedHistoryDetail.follow_up_actions.map((item) => (
-                          <li key={item}>- {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-surface-500">Persisted findings</div>
-                      <ul className="mt-2 space-y-2 text-surface-300">
-                        {selectedHistoryDetail.findings.map((item) => (
-                          <li key={item}>- {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -358,8 +378,9 @@ export function ResearchWorkbench() {
       return (
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Query</label>
+            <label htmlFor="research-retrieve-query" className="mb-2 block text-sm font-medium text-surface-200">Query</label>
             <input
+              id="research-retrieve-query"
               value={retrieveQuery}
               onChange={(event) => setRetrieveQuery(event.target.value)}
               className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"
@@ -475,16 +496,18 @@ export function ResearchWorkbench() {
       return (
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Screen title</label>
+            <label htmlFor="research-screen-title" className="mb-2 block text-sm font-medium text-surface-200">Screen title</label>
             <input
+              id="research-screen-title"
               value={screenTitle}
               onChange={(event) => setScreenTitle(event.target.value)}
               className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Screenshot notes / OCR text</label>
+            <label htmlFor="research-screen-notes" className="mb-2 block text-sm font-medium text-surface-200">Screenshot notes / OCR text</label>
             <textarea
+              id="research-screen-notes"
               value={screenNotes}
               onChange={(event) => setScreenNotes(event.target.value)}
               rows={5}
@@ -492,16 +515,18 @@ export function ResearchWorkbench() {
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Visible labels</label>
+            <label htmlFor="research-screen-labels" className="mb-2 block text-sm font-medium text-surface-200">Visible labels</label>
             <input
+              id="research-screen-labels"
               value={screenLabels}
               onChange={(event) => setScreenLabels(event.target.value)}
               className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Optional screenshot</label>
+            <label htmlFor="research-screen-file" className="mb-2 block text-sm font-medium text-surface-200">Optional screenshot</label>
             <input
+              id="research-screen-file"
               type="file"
               accept="image/*"
               onChange={async (event) => {
@@ -616,8 +641,9 @@ export function ResearchWorkbench() {
     return (
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-surface-200">Raw industrial log</label>
+          <label htmlFor="research-log-text" className="mb-2 block text-sm font-medium text-surface-200">Raw industrial log</label>
           <textarea
+            id="research-log-text"
             value={logText}
             onChange={(event) => setLogText(event.target.value)}
             rows={7}
@@ -625,8 +651,9 @@ export function ResearchWorkbench() {
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium text-surface-200">Preserve tokens</label>
+          <label htmlFor="research-preserve-tokens" className="mb-2 block text-sm font-medium text-surface-200">Preserve tokens</label>
           <input
+            id="research-preserve-tokens"
             value={preserveTokens}
             onChange={(event) => setPreserveTokens(event.target.value)}
             className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"
@@ -690,15 +717,23 @@ export function ResearchWorkbench() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex h-[min(48rem,92vh)] w-[min(76rem,100%)] overflow-hidden rounded-2xl border border-surface-800 bg-surface-950 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="presentation">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="research-workbench-title"
+        aria-describedby="research-workbench-description"
+        className="flex h-[min(48rem,92vh)] w-[min(76rem,100%)] overflow-hidden rounded-2xl border border-surface-800 bg-surface-950 shadow-2xl"
+      >
         <div className="flex w-64 flex-col border-r border-surface-800 p-4">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-surface-100">Research Workbench</h2>
-              <p className="text-xs text-surface-500">Clean-room orchestration and MES analysis tools.</p>
+              <h2 id="research-workbench-title" className="text-lg font-semibold text-surface-100">Research Workbench</h2>
+              <p id="research-workbench-description" className="text-xs text-surface-500">Clean-room orchestration and MES analysis tools.</p>
             </div>
             <button
+              ref={closeButtonRef}
+              type="button"
               onClick={closeResearch}
               className="rounded-md p-2 text-surface-500 transition-colors hover:bg-surface-800 hover:text-surface-200"
               aria-label="Close research workbench"
@@ -712,6 +747,7 @@ export function ResearchWorkbench() {
               return (
                 <button
                   key={section}
+                  type="button"
                   onClick={() => setActiveSection(section)}
                   className={cn(
                     "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",

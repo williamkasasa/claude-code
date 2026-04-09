@@ -70,12 +70,20 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-dialog-title"
+      aria-describedby="share-dialog-desc"
+    >
       <div className="w-full max-w-lg rounded-2xl border border-surface-800 bg-surface-950 p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-surface-100">Share Conversation</h2>
-            <p className="text-sm text-surface-500">
+            <h2 id="share-dialog-title" className="text-lg font-semibold text-surface-100">
+              Share Conversation
+            </h2>
+            <p id="share-dialog-desc" className="text-sm text-surface-500">
               Generate a read-only link for the current conversation.
             </p>
           </div>
@@ -127,6 +135,8 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
             <div>
               <label className="mb-2 block text-sm font-medium text-surface-200">Password</label>
               <input
+                type="password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"

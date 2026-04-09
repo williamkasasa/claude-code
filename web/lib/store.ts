@@ -59,6 +59,52 @@ const DEFAULT_SETTINGS: AppSettings = {
   telemetryEnabled: false,
 };
 
+const CHAT_STORE_KEY = "agclaw-chat";
+const LEGACY_CHAT_STORE_KEY = "claude-code-chat";
+
+type PersistedChatState = Partial<
+  Pick<
+    ChatState,
+    | "conversations"
+    | "activeConversationId"
+    | "settings"
+    | "pinnedIds"
+    | "recentSearches"
+    | "tags"
+  >
+>;
+
+function readLegacyPersistedState(): PersistedChatState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LEGACY_CHAT_STORE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { state?: PersistedChatState };
+    return parsed.state ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSettings(settings: Partial<AppSettings> | undefined): AppSettings {
+  const provider = settings?.provider ?? DEFAULT_SETTINGS.provider;
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...settings,
+    provider,
+    apiUrl: settings?.apiUrl?.trim() || DEFAULT_PROVIDER_URLS[provider],
+    model: settings?.model?.trim() || getDefaultModelForProvider(provider),
+    localMode: settings?.localMode ?? isLocalProvider(provider),
+  };
+}
+
 interface ChatState {
   conversations: Conversation[];
   activeConversationId: string | null;
@@ -395,6 +441,7 @@ export const useChatStore = create<ChatState>()(
           api: {
             localMode: DEFAULT_SETTINGS.localMode,
             provider: DEFAULT_SETTINGS.provider,
+            model: getDefaultModelForProvider(DEFAULT_SETTINGS.provider),
             apiUrl: DEFAULT_SETTINGS.apiUrl,
             apiKey: DEFAULT_SETTINGS.apiKey,
             streamingEnabled: DEFAULT_SETTINGS.streamingEnabled,
@@ -437,7 +484,7 @@ export const useChatStore = create<ChatState>()(
       },
     }),
     {
-      name: "agclaw-chat",
+      name: CHAT_STORE_KEY,
       partialize: (state) => ({
         conversations: state.conversations,
         activeConversationId: state.activeConversationId,
@@ -446,21 +493,23 @@ export const useChatStore = create<ChatState>()(
         recentSearches: state.recentSearches,
         tags: state.tags,
       }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...(persisted as object),
-        settings: {
-          ...DEFAULT_SETTINGS,
-          ...((persisted as { settings?: Partial<AppSettings> }).settings ?? {}),
-        },
-        // Never persist UI state
-        settingsOpen: false,
-        researchOpen: false,
-        buddyOpen: false,
-        isSearchOpen: false,
-        sidebarTab: "chats",
-        selectedConversationIds: [],
-      }),
+      merge: (persisted, current) => {
+        const persistedState =
+          (persisted as PersistedChatState | undefined) ?? readLegacyPersistedState() ?? {};
+
+        return {
+          ...current,
+          ...persistedState,
+          settings: normalizeSettings(persistedState.settings),
+          // Never persist UI state
+          settingsOpen: false,
+          researchOpen: false,
+          buddyOpen: false,
+          isSearchOpen: false,
+          sidebarTab: "chats",
+          selectedConversationIds: [],
+        };
+      },
     }
   )
 );

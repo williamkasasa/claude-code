@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "datasets": {
+    "ocr-vqa": {
+      "dataset": "howard-hou/OCR-VQA",
+      "config": "default",
+      "split": "validation",
+      "defaultLimit": 25,
+      "output": "cases/hf/ocr-vqa.validation.jsonl",
+      "purpose": "OCR-heavy multimodal validation assets for screenshot and label extraction checks.",
+      "governance": {
+        "reviewRequired": true,
+        "licenseNotes": "Review upstream dataset card and downstream image licensing before broader redistribution.",
+        "allowedUses": [
+          "Internal evaluation asset generation",
+          "Prompt quality checks",
+          "Multimodal regression sampling"
+        ],
+        "disallowedUses": [
+          "Blind production fine-tuning",
+          "Automatic redistribution without review"
+        ]
+      }
+    },
+    "chartqa": {
+      "dataset": "lmms-lab/ChartQA",
+      "config": "default",
+      "split": "test",
+      "defaultLimit": 25,
+      "output": "cases/hf/chartqa.test.jsonl",
+      "purpose": "Chart and dashboard reasoning samples for visual QA regression checks.",
+      "governance": {
+        "reviewRequired": true,
+        "licenseNotes": "Confirm chart imagery and test split handling before sharing outside the repo.",
+        "allowedUses": [
+          "Internal evaluation asset generation",
+          "Visual reasoning smoke tests"
+        ],
+        "disallowedUses": [
+          "External publication without manual review"
+        ]
+      }
+    },
+    "docvqa": {
+      "dataset": "VLR-CVC/DocVQA-2026",
+      "config": "default",
+      "split": "val",
+      "defaultLimit": 25,
+      "output": "cases/hf/docvqa.val.jsonl",
+      "purpose": "Document QA samples for OCR and document understanding evaluations.",
+      "governance": {
+        "reviewRequired": true,
+        "licenseNotes": "Validate redistribution and document-image usage constraints before exporting samples.",
+        "allowedUses": [
+          "Internal evaluation asset generation",
+          "Document QA regression checks"
+        ],
+        "disallowedUses": [
+          "Automatic promotion into training corpora"
+        ]
+      }
+    },
+    "rico-screen2words": {
+      "dataset": "pinkmooncake/rico-screen2words",
+      "config": "default",
+      "split": "test",
+      "defaultLimit": 25,
+      "output": "cases/hf/rico-screen2words.test.jsonl",
+      "purpose": "UI-screen captioning samples that map well to AG-Claw screenshot review and Buddy UX checks.",
+      "governance": {
+        "reviewRequired": true,
+        "licenseNotes": "Review the upstream card and any UI screenshot provenance before reuse beyond local evaluation.",
+        "allowedUses": [
+          "Internal evaluation asset generation",
+          "UX captioning regression checks"
+        ],
+        "disallowedUses": [
+          "External redistribution without approval"
+        ]
+      }
+    }
+  }
+}

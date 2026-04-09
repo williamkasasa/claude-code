@@ -22,6 +22,7 @@ export function AnnotationBadge({ messageId }: AnnotationBadgeProps) {
   return (
     <div className="relative inline-block">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium",

@@ -2,7 +2,8 @@
   "name": "agclaw-promptfoo",
   "private": true,
   "scripts": {
-    "gate": "promptfoo eval -c promptfooconfig.yaml --no-write"
+    "gate": "promptfoo eval -c promptfooconfig.yaml --no-write",
+    "import:hf-assets": "node scripts/import-hf-eval-assets.mjs"
   },
   "devDependencies": {
     "promptfoo": "^0.110.0"

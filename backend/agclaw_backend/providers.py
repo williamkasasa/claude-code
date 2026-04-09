@@ -141,6 +141,8 @@ def _build_openai_messages(messages: list[dict[str, Any]], system_prompt: str) -
         prepared.append({"role": "system", "content": system_prompt.strip()})
     for message in messages:
         role = message.get("role", "user")
+        if role == "system":
+            continue
         if role == "tool":
             role = "user"
         prepared.append({"role": "assistant" if role == "assistant" else "user", "content": extract_message_text(message.get("content"))})

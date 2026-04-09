@@ -1,8 +1,9 @@
-import json
+﻿import json
 import os
 import threading
 import time
 import unittest
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from agclaw_backend.http_api import create_server
@@ -21,7 +22,16 @@ class BackendHttpApiTests(unittest.TestCase):
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
-        time.sleep(0.05)
+
+        deadline = time.time() + 5
+        while True:
+            try:
+                with urlopen(f"http://127.0.0.1:{cls.port}/health", timeout=0.5):
+                    break
+            except Exception:
+                if time.time() >= deadline:
+                    raise TimeoutError("Backend test server did not become ready in time")
+                time.sleep(0.05)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -39,29 +49,37 @@ class BackendHttpApiTests(unittest.TestCase):
         return f"http://127.0.0.1:{self.fixture_port}"
 
     def test_health_endpoint(self) -> None:
-        with urlopen(self._url("/health")) as response:
+        with urlopen(self._url("/health"), timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["service"], "agclaw-backend")
 
     def test_provider_health_openai_compatible(self) -> None:
-        with urlopen(self._url(f"/api/provider-health?provider=openai-compatible&apiUrl={self._fixture_url()}")) as response:
+        with urlopen(self._url(f"/api/provider-health?provider=openai-compatible&apiUrl={self._fixture_url()}"), timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["provider"], "openai-compatible")
 
     def test_provider_health_openai(self) -> None:
-        with urlopen(self._url(f"/api/provider-health?provider=openai&apiUrl={self._fixture_url()}&apiKey=test-token")) as response:
+        request = Request(
+            self._url("/api/provider-health"),
+            data=json.dumps({"provider": "openai", "apiUrl": self._fixture_url(), "apiKey": "test-token"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["provider"], "openai")
 
     def test_provider_health_github_models(self) -> None:
-        with urlopen(
-            self._url(
-                f"/api/provider-health?provider=github-models&apiUrl={self._fixture_url()}&apiKey=test-token"
-            )
-        ) as response:
+        request = Request(
+            self._url("/api/provider-health"),
+            data=json.dumps({"provider": "github-models", "apiUrl": self._fixture_url(), "apiKey": "test-token"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["provider"], "github-models")
@@ -82,7 +100,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = response.read().decode("utf-8")
         self.assertIn("Fixture reply: review this batch log", payload)
         self.assertIn("[DONE]", payload)
@@ -104,7 +122,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = response.read().decode("utf-8")
         self.assertIn("Fixture reply: reply with github models ok", payload)
         self.assertIn("[DONE]", payload)
@@ -122,11 +140,9 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        try:
-            urlopen(request)
-            self.fail("Expected HTTP error")
-        except Exception as error:  # urllib raises HTTPError, but keeping it simple for stdlib-only tests
-            self.assertIn("400", str(error))
+        with self.assertRaises(HTTPError) as error_context:
+            urlopen(request, timeout=3)
+        self.assertIn("400", str(error_context.exception))
 
     def test_mes_log_slim_endpoint(self) -> None:
         request = Request(
@@ -141,7 +157,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertEqual(payload["kept_lines"], 3)
         self.assertIn("Batch=42 started", payload["text"])
@@ -153,7 +169,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertGreaterEqual(len(payload["results"]), 1)
         first_result = payload["results"][0]
@@ -181,7 +197,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["requires_human_review"])
         self.assertIn("Prepared 2 research roles", payload["summary"])
@@ -191,13 +207,13 @@ class BackendHttpApiTests(unittest.TestCase):
         self.assertGreaterEqual(len(payload["role_plans"][0]["artifacts"]), 1)
         self.assertEqual(payload["role_plans"][0]["artifacts"][0]["review_gate"], "human-review")
 
-        with urlopen(self._url("/api/orchestration/history?limit=5")) as response:
+        with urlopen(self._url("/api/orchestration/history?limit=5"), timeout=3) as response:
             history_payload = json.loads(response.read().decode("utf-8"))
         self.assertGreaterEqual(len(history_payload["items"]), 1)
         self.assertEqual(history_payload["items"][0]["prompt"], "Review MES release flow")
         detail_id = history_payload["items"][0]["detail_id"]
 
-        with urlopen(self._url(f"/api/orchestration/history/{detail_id}")) as response:
+        with urlopen(self._url(f"/api/orchestration/history/{detail_id}"), timeout=3) as response:
             detail_payload = json.loads(response.read().decode("utf-8"))
         self.assertEqual(detail_payload["id"], detail_id)
         self.assertEqual(detail_payload["prompt"], "Review MES release flow")
@@ -205,7 +221,7 @@ class BackendHttpApiTests(unittest.TestCase):
         self.assertGreaterEqual(len(detail_payload["follow_up_actions"]), 1)
 
     def test_mes_dataset_catalog_endpoint(self) -> None:
-        with urlopen(self._url("/api/mes/datasets")) as response:
+        with urlopen(self._url("/api/mes/datasets"), timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertGreaterEqual(len(payload["items"]), 2)
         self.assertTrue(any(item["id"] == "isa95-core" for item in payload["items"]))
@@ -225,7 +241,7 @@ class BackendHttpApiTests(unittest.TestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urlopen(request) as response:
+        with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertIn("Mixer release screen", payload["summary"])
         self.assertEqual(payload["adapter"], "heuristic")
@@ -261,7 +277,7 @@ class BackendHttpApiTests(unittest.TestCase):
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urlopen(request) as response:
+            with urlopen(request, timeout=3) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         finally:
             for key, value in previous_env.items():

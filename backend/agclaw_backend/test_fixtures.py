@@ -66,7 +66,7 @@ class OpenAiFixtureHandler(BaseHTTPRequestHandler):
             body = self._read_json()
             messages = body.get("messages") or []
             prompt = self._extract_prompt(messages[-1].get("content", "ready")) if messages else "ready"
-            if body.get("stream", True):
+            if body.get("stream", False):
                 self._send_sse(
                     [
                         {"choices": [{"delta": {"content": f"Fixture reply: {prompt}"}, "finish_reason": None}]},
@@ -80,7 +80,7 @@ class OpenAiFixtureHandler(BaseHTTPRequestHandler):
             body = self._read_json()
             messages = body.get("messages") or []
             prompt = self._extract_prompt(messages[-1].get("content", "ready")) if messages else "ready"
-            if body.get("stream", True):
+            if body.get("stream", False):
                 self._send_sse(
                     [
                         {"choices": [{"delta": {"content": f"Fixture reply: {prompt}"}, "finish_reason": None}]},

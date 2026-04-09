@@ -56,7 +56,17 @@ function processMarkdown(msg: InMessage): OutMessage {
   const headings = tokens
     .filter((t): t is TokenLine & { type: "heading" } => t.type === "heading")
     .map((t) => ({ level: t.level!, text: t.content }));
-  const codeBlockCount = tokens.filter((t) => t.type === "code-fence").length;
+  let inCodeBlock = false;
+  let codeBlockCount = 0;
+  for (const token of tokens) {
+    if (token.type !== "code-fence") {
+      continue;
+    }
+    if (!inCodeBlock) {
+      codeBlockCount += 1;
+    }
+    inCodeBlock = !inCodeBlock;
+  }
 
   return { id: msg.id, tokens, headings, codeBlockCount };
 }

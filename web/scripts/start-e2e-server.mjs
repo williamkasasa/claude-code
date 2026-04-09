@@ -10,6 +10,11 @@ const nextBin = path.resolve(webDir, "node_modules", "next", "dist", "bin", "nex
 const port = process.env.PORT ?? "3100";
 const backendPort = process.env.AGCLAW_BACKEND_PORT ?? "8008";
 const liveVision = process.env.AGCLAW_E2E_LIVE_VISION === "1";
+const fail = (name) => (error) => {
+  console.error(`${name} failed to start:`, error);
+  shutdown("SIGTERM");
+  process.exit(1);
+};
 
 const backend = spawn(
   "python",
@@ -35,6 +40,7 @@ const backend = spawn(
     },
   }
 );
+backend.on("error", fail("backend"));
 
 const child = spawn(process.execPath, [nextBin, "start", "-p", port], {
   cwd: webDir,
@@ -46,6 +52,7 @@ const child = spawn(process.execPath, [nextBin, "start", "-p", port], {
     NEXT_PUBLIC_APP_URL: `http://127.0.0.1:${port}`,
   },
 });
+child.on("error", fail("web"));
 
 const shutdown = (signal) => {
   if (!backend.killed) {
@@ -61,11 +68,11 @@ child.on("exit", (code) => {
   process.exit(code ?? 0);
 });
 
-backend.on("exit", (code) => {
-  if (code && !child.killed) {
+backend.on("exit", (code, signal) => {
+  if (!child.killed) {
     child.kill("SIGTERM");
-    process.exit(code);
   }
+  process.exit(code ?? (signal ? 1 : 0));
 });
 
 process.on("SIGINT", () => shutdown("SIGINT"));

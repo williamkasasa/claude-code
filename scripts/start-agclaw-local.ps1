@@ -48,7 +48,7 @@ function Wait-HttpReady {
   while ((Get-Date) -lt $deadline) {
     try {
       $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
-      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
         return $true
       }
     } catch {
@@ -127,6 +127,10 @@ if (-not (Wait-HttpReady -Url "$backendUrl/health" -TimeoutSeconds 20)) {
 
 Write-Host "Starting AG-Claw web shell on port $WebPort..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList @('-NoExit', '-Command', $webCommand) -WorkingDirectory $webDir | Out-Null
+
+if (-not (Wait-HttpReady -Url "http://127.0.0.1:$WebPort/health" -TimeoutSeconds 30)) {
+  throw "Web shell did not become ready on http://127.0.0.1:$WebPort"
+}
 
 Write-Host ""
 Write-Host "AG-Claw local stack started." -ForegroundColor Green

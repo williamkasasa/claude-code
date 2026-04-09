@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { X, Save } from "lucide-react";
 import { useFileViewerStore } from "@/lib/fileViewerStore";
+import { useNotificationStore } from "@/lib/notifications";
 import { truncateMeasuredText } from "@/lib/pretextSpike";
 import { cn } from "@/lib/utils";
 import { FileBreadcrumb } from "./FileBreadcrumb";
@@ -18,6 +19,7 @@ export function DesktopFileViewer() {
     updateContent,
     markSaved,
   } = useFileViewerStore();
+  const addToast = useNotificationStore((state) => state.addToast);
   const [isSaving, setIsSaving] = useState(false);
 
   const activeTab = useMemo(
@@ -43,9 +45,17 @@ export function DesktopFileViewer() {
         body: JSON.stringify({ path: activeTab.path, content: activeTab.content }),
       });
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const details = await response.text();
+        throw new Error(details || `HTTP ${response.status}`);
       }
       markSaved(activeTab.id);
+    } catch (error) {
+      addToast({
+        variant: "error",
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        duration: 10000,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -101,6 +111,7 @@ export function DesktopFileViewer() {
             <textarea
               value={activeTab.content}
               onChange={(event) => updateContent(activeTab.id, event.target.value)}
+              aria-label="Edit file contents"
               className="h-full w-full resize-none bg-surface-950 p-4 font-mono text-xs text-surface-100 outline-none"
             />
           ) : (

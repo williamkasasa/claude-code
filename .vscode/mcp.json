@@ -4,10 +4,10 @@
       "type": "stdio",
       "command": "node",
       "args": [
-        "D:/OneDrive - AG SOLUTION/claude-code/mcp-server/dist/src/index.js"
+        "${workspaceFolder}/mcp-server/dist/src/index.js"
       ],
       "env": {
-        "AGCLAW_REFERENCE_SRC_ROOT": "D:/OneDrive - AG SOLUTION/claude-code/src"
+        "AGCLAW_REFERENCE_SRC_ROOT": "${workspaceFolder}/src"
       }
     }
   }

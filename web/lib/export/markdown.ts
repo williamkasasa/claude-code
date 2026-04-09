@@ -34,7 +34,7 @@ function renderMessage(msg: Message, options: ExportOptions): string {
             : extractTextContent(block.content);
         const truncated =
           !options.includeFileContents && raw.length > 500
-            ? raw.slice(0, 500) + "\nâ€¦[truncated]"
+            ? raw.slice(0, 500) + "\n...[truncated]"
             : raw;
         parts.push(
           `\`\`\`tool-result${block.is_error ? " error" : ""}\n${truncated}\n\`\`\``

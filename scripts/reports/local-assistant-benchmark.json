@@ -1,0 +1,80 @@
+{
+  "runAt": "2026-04-09T19:22:01.246Z",
+  "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+  "prompts": [
+    {
+      "id": "handoff-summary",
+      "prompt": "Summarize a manufacturing shift handoff in four bullet points: line 2 restarted, alarm 42 cleared, batch 17 awaiting QA release, and one CIP rinse still running."
+    },
+    {
+      "id": "safety-triage",
+      "prompt": "A mixer HMI shows MANUAL MODE, release hold active, and an alarm banner. Give a short advisory-only response with the top three operator checks."
+    },
+    {
+      "id": "traceability",
+      "prompt": "Explain why batch genealogy capture matters in ISA-95 style MES workflows using three concise sentences."
+    }
+  ],
+  "results": [
+    {
+      "model": "qwen2.5:3b",
+      "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+      "prompts": [
+        {
+          "promptId": "handoff-summary",
+          "latencyMs": 7102.31,
+          "responseChars": 214,
+          "excerpt": "- Line 2 has been successfully restarted.\n- Alarm 42 has been cleared and is now operational.\n- Batch 17 is ready for Quality Assurance (QA) release.\n- One Continuous Cleaning In Place (CIP) rinse cycle is ongoing."
+        },
+        {
+          "promptId": "safety-triage",
+          "latencyMs": 907.19,
+          "responseChars": 335,
+          "excerpt": "1. Verify if the system is in HOLD mode by checking the control panel or documentation.\n2. Ensure that no manual override commands are inadvertently sent to the mixer through any external interfaces.\n3. Review process pa"
+        },
+        {
+          "promptId": "traceability",
+          "latencyMs": 667.6,
+          "responseChars": 250,
+          "excerpt": "Batch genealogy capture is crucial in ISA-95 style MES workflows as it ensures traceability of materials through production processes, supports compliance with regulatory requirements, and aids in root cause analysis for"
+        }
+      ],
+      "summary": {
+        "successes": 3,
+        "failures": 0,
+        "averageLatencyMs": 2892.37,
+        "averageResponseChars": 266
+      }
+    },
+    {
+      "model": "gemma3:1b",
+      "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+      "prompts": [
+        {
+          "promptId": "handoff-summary",
+          "latencyMs": 3856.91,
+          "responseChars": 375,
+          "excerpt": "Here’s a four-bullet point summary of the manufacturing shift handoff:\n\n*   **Line Restart:** Production line has been restarted.\n*   **Alarm Clearance:** Alarm 42 has been cleared, indicating a safe operational state.\n*"
+        },
+        {
+          "promptId": "safety-triage",
+          "latencyMs": 1194.71,
+          "responseChars": 478,
+          "excerpt": "Okay, here’s a concise advisory response:\n\n**Advisory:** Ensure the mixer is in MANUAL MODE, release hold is active, and the alarm banner is visible.\n\n**Top Three Operator Checks:**\n\n1.  **Verify Alarm Banner:** Confirm "
+        },
+        {
+          "promptId": "traceability",
+          "latencyMs": 1343.04,
+          "responseChars": 658,
+          "excerpt": "Here’s a concise explanation of why batch genealogy capture is crucial in ISA-95-style MES workflows:\n\n1.  **Traceability & Auditability:** It establishes a complete lineage of data transformations and decisions, enablin"
+        }
+      ],
+      "summary": {
+        "successes": 3,
+        "failures": 0,
+        "averageLatencyMs": 2131.55,
+        "averageResponseChars": 504
+      }
+    }
+  ]
+}

@@ -67,7 +67,17 @@ export function ModelSettings() {
             min={1000}
             max={200000}
             step={1000}
-            onChange={(event) => updateSettings({ maxTokens: Number(event.target.value) })}
+            onChange={(event) => {
+              const rawValue = event.target.value.trim();
+              if (!rawValue) {
+                return;
+              }
+              const nextValue = Number(rawValue);
+              if (!Number.isFinite(nextValue)) {
+                return;
+              }
+              updateSettings({ maxTokens: Math.min(200000, Math.max(1000, Math.round(nextValue))) });
+            }}
             aria-label="Max tokens"
             className={cn(
               "w-24 bg-surface-800 border border-surface-700 rounded-md px-2 py-1 text-right text-sm",

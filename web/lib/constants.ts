@@ -31,7 +31,7 @@ export const PROVIDERS: ProviderOption[] = [
   {
     id: "openai-compatible",
     label: "OpenAI-Compatible Gateway",
-    description: "Generic local or remote chat-completions endpoint",
+    description: "Generic local or remote chat-completions endpoint, including LiteLLM and other gateways",
   },
   {
     id: "ollama",
@@ -238,6 +238,6 @@ export function getProviderHelpText(provider: ChatProvider): string {
     case "openai":
       return "Required for direct OpenAI access. Stored locally in browser state only.";
     default:
-      return "Optional for local providers unless your gateway requires a bearer token.";
+      return "Optional for local providers unless your gateway requires a bearer token, such as LiteLLM or another OpenAI-compatible control plane.";
   }
 }

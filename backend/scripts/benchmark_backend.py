@@ -6,44 +6,71 @@ import statistics
 import threading
 import time
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from agclaw_backend.http_api import create_server
 from agclaw_backend.test_fixtures import create_openai_fixture_server
 
 
-def _post_json(url: str, payload: dict[str, object]) -> None:
+def _post_json(url: str, payload: dict[str, object], *, timeout_seconds: float) -> None:
     request = Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urlopen(request) as response:
-        response.read()
+    _read_response(request, timeout_seconds=timeout_seconds)
 
 
-def _get(url: str) -> None:
-    with urlopen(url) as response:
-        response.read()
+def _get(url: str, *, timeout_seconds: float) -> None:
+    request = Request(url, method="GET")
+    _read_response(request, timeout_seconds=timeout_seconds)
+
+
+def _read_response(request: Request, *, timeout_seconds: float) -> None:
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:
+            response.read()
+    except HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"HTTP {error.code}: {detail or error.reason}") from error
+    except URLError as error:
+        raise RuntimeError(str(error.reason)) from error
 
 
 def _measure(label: str, iterations: int, fn) -> dict[str, object]:
     samples_ms: list[float] = []
+    errors: list[str] = []
     for _ in range(iterations):
         start = time.perf_counter()
-        fn()
-        samples_ms.append((time.perf_counter() - start) * 1000)
+        try:
+            fn()
+            samples_ms.append((time.perf_counter() - start) * 1000)
+        except Exception as error:  # noqa: BLE001
+            errors.append(str(error))
+    if not samples_ms:
+        return {
+            "label": label,
+            "iterations": iterations,
+            "failures": len(errors),
+            "error": errors[0] if errors else "No successful samples captured",
+        }
     samples_ms.sort()
     p95_index = max(0, min(len(samples_ms) - 1, int(round((len(samples_ms) - 1) * 0.95))))
-    return {
+    result = {
         "label": label,
         "iterations": iterations,
+        "successful_iterations": len(samples_ms),
         "avg_ms": round(statistics.mean(samples_ms), 2),
         "median_ms": round(statistics.median(samples_ms), 2),
         "p95_ms": round(samples_ms[p95_index], 2),
         "max_ms": round(max(samples_ms), 2),
     }
+    if errors:
+        result["failures"] = len(errors)
+        result["last_error"] = errors[-1]
+    return result
 
 
 def main() -> int:
@@ -51,8 +78,14 @@ def main() -> int:
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8018)
+    parser.add_argument("--timeout-seconds", type=float, default=5.0)
     parser.add_argument("--self-host", action="store_true", help="Start a temporary backend server for the benchmark run.")
     args = parser.parse_args()
+
+    if args.iterations < 1:
+        raise SystemExit("--iterations must be at least 1")
+    if args.timeout_seconds <= 0:
+        raise SystemExit("--timeout-seconds must be greater than 0")
 
     fixture = None
     fixture_thread = None
@@ -73,11 +106,14 @@ def main() -> int:
 
         base_url = f"http://{args.host}:{args.port}"
         measurements = [
-            _measure("health", args.iterations, lambda: _get(f"{base_url}/health")),
+            _measure("health", args.iterations, lambda: _get(f"{base_url}/health", timeout_seconds=args.timeout_seconds)),
             _measure(
                 "provider-health",
                 args.iterations,
-                lambda: _get(f"{base_url}/api/provider-health?provider=openai-compatible&apiUrl={fixture_url}"),
+                lambda: _get(
+                    f"{base_url}/api/provider-health?provider=openai-compatible&apiUrl={fixture_url}",
+                    timeout_seconds=args.timeout_seconds,
+                ),
             ),
             _measure(
                 "mes-retrieve",
@@ -85,6 +121,7 @@ def main() -> int:
                 lambda: _post_json(
                     f"{base_url}/api/mes/retrieve",
                     {"query": "genealogy traceability", "domains": ["isa-95"], "dataset_ids": ["isa95-core"], "limit": 3},
+                    timeout_seconds=args.timeout_seconds,
                 ),
             ),
             _measure(
@@ -105,6 +142,7 @@ def main() -> int:
                         "preserve_tokens": ["Batch=42", "operator"],
                         "max_lines": 4,
                     },
+                    timeout_seconds=args.timeout_seconds,
                 ),
             ),
             _measure(
@@ -119,6 +157,7 @@ def main() -> int:
                         "roles": ["plc-analyst", "devops", "safety"],
                         "context": {"workspace_root": str(Path.cwd())},
                     },
+                    timeout_seconds=args.timeout_seconds,
                 ),
             ),
             _measure(
@@ -131,6 +170,7 @@ def main() -> int:
                         "notes": "Alarm banner visible. Manual mode lit. Batch 42 recipe screen open with release hold indicator.",
                         "visible_labels": ["ALARM 42", "MANUAL MODE", "Batch 42", "Release Hold"],
                     },
+                    timeout_seconds=args.timeout_seconds,
                 ),
             ),
         ]

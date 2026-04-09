@@ -52,6 +52,31 @@ export async function* streamChat(
     return;
   }
 
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (!contentType.includes("text/event-stream")) {
+    const raw = (await response.text()).trim();
+    if (!raw) {
+      yield { type: "done" };
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(raw) as { type?: StreamChunk["type"]; content?: string; error?: string };
+      if (payload.error) {
+        yield { type: "error", error: payload.error };
+      } else if (payload.type === "text" || typeof payload.content === "string") {
+        yield { type: payload.type ?? "text", content: payload.content ?? "" };
+      } else {
+        yield { type: "text", content: raw };
+      }
+    } catch {
+      yield { type: "text", content: raw };
+    }
+
+    yield { type: "done" };
+    return;
+  }
+
   const reader = response.body?.getReader();
   if (!reader) {
     yield { type: "error", error: "No response body" };

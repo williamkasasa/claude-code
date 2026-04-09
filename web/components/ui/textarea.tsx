@@ -58,6 +58,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={resolvedRef}
           value={value}
           onChange={handleChange}
+          aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
           className={cn(
             'flex min-h-[80px] w-full rounded-md border bg-surface-900 px-3 py-2 text-sm text-surface-100',

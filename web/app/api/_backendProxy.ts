@@ -18,14 +18,19 @@ export async function proxyBackendJson(request: NextRequest, path: string) {
   }
 
   const rawBody = await request.text();
-  const response = await fetch(`${backendBaseUrl}${path}`, {
-    method: request.method,
-    headers: {
-      "Content-Type": request.headers.get("Content-Type") ?? "application/json",
-    },
-    body: rawBody || undefined,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${backendBaseUrl}${path}`, {
+      method: request.method,
+      headers: {
+        "Content-Type": request.headers.get("Content-Type") ?? "application/json",
+      },
+      body: rawBody || undefined,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json({ error: "Upstream backend unavailable" }, { status: 502 });
+  }
 
   return new NextResponse(response.body, {
     status: response.status,
@@ -47,7 +52,12 @@ export async function proxyBackendGet(pathWithQuery: string) {
     );
   }
 
-  const response = await fetch(`${backendBaseUrl}${pathWithQuery}`, { cache: "no-store" });
+  let response: Response;
+  try {
+    response = await fetch(`${backendBaseUrl}${pathWithQuery}`, { cache: "no-store" });
+  } catch {
+    return NextResponse.json({ error: "Upstream backend unavailable" }, { status: 502 });
+  }
   return new NextResponse(response.body, {
     status: response.status,
     headers: {

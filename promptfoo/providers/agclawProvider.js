@@ -1,5 +1,5 @@
 class AgClawSafetyProvider {
-  constructor(options) {
+  constructor(options = {}) {
     this.providerId = options.id || "agclaw-safety-provider";
   }
 

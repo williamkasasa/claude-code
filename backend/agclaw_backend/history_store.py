@@ -6,7 +6,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from .contracts import (
     OrchestrationArtifactBundle,
@@ -131,13 +131,17 @@ def append_orchestration_history(request: ResearchRequest, response: ResearchRes
         "requires_human_review": detail.requires_human_review,
     }
 
+    artifact_path = artifact_dir / f"{record_id}.json"
+    temp_path = artifact_dir / f"{record_id}.tmp"
+    temp_path.write_text(
+        json.dumps(detail_payload, ensure_ascii=True, indent=2),
+        encoding="utf-8",
+    )
+    temp_path.replace(artifact_path)
+
     with _LOCK:
         with history_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(asdict(entry), ensure_ascii=True) + "\n")
-        (artifact_dir / f"{record_id}.json").write_text(
-            json.dumps(detail_payload, ensure_ascii=True, indent=2),
-            encoding="utf-8",
-        )
     return entry
 
 
@@ -159,7 +163,12 @@ def list_orchestration_history(limit: int = 20) -> list[OrchestrationHistoryEntr
 
 
 def get_orchestration_detail(detail_id: str) -> OrchestrationArtifactBundle | None:
-    path = _artifact_dir() / f"{detail_id}.json"
+    try:
+        safe_id = str(UUID(detail_id))
+    except ValueError:
+        return None
+
+    path = _artifact_dir() / f"{safe_id}.json"
     if not path.exists():
         return None
 
@@ -168,7 +177,7 @@ def get_orchestration_detail(detail_id: str) -> OrchestrationArtifactBundle | No
 
     role_plan_payloads = payload.get("role_plans", [])
     return OrchestrationArtifactBundle(
-        id=str(payload.get("id", detail_id)),
+        id=str(payload.get("id", safe_id)),
         created_at=str(payload.get("created_at", "")),
         prompt=str(payload.get("prompt", "")),
         provider=str(payload.get("provider", "")),

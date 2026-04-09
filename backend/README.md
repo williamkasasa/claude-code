@@ -13,7 +13,8 @@ This package is the clean-room backend seed for AG-Claw. It intentionally avoids
 ## Run
 
 ```powershell
-$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$repoRoot = git rev-parse --show-toplevel
+$env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend"))
 python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
 
@@ -86,7 +87,8 @@ $env:AGCLAW_SCREEN_VISION_MODEL = "qwen2.5vl:3b"
 Then:
 
 ```powershell
-$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$repoRoot = git rev-parse --show-toplevel
+$env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend"))
 python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
 
@@ -99,7 +101,8 @@ This local Ollama path was validated against a synthetic HMI-style PNG on this w
 Run the repeatable backend benchmark:
 
 ```powershell
-$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$repoRoot = git rev-parse --show-toplevel
+$env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend"))
 python backend/scripts/benchmark_backend.py --self-host --iterations 10
 ```
 
@@ -138,7 +141,8 @@ Required environment variables:
 Run:
 
 ```powershell
-$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$repoRoot = git rev-parse --show-toplevel
+$env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend"))
 $env:AGCLAW_LIVE_PROVIDER_TESTS = "1"
 python -m unittest backend.tests.test_live_providers
 ```
@@ -146,7 +150,8 @@ python -m unittest backend.tests.test_live_providers
 Example session-only hosted validation:
 
 ```powershell
-$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$repoRoot = git rev-parse --show-toplevel
+$env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend"))
 $env:AGCLAW_LIVE_PROVIDER_TESTS = "1"
 $env:GITHUB_TOKEN = "<token>"
 $env:AGCLAW_LIVE_GITHUB_MODELS_MODEL = "openai/gpt-4.1-mini"
@@ -157,7 +162,7 @@ python -m unittest backend.tests.test_live_providers
 
 ## Validation
 
-- `set PYTHONPATH=d:\OneDrive - AG SOLUTION\claude-code\backend && python -m unittest discover -s backend/tests`
+- `$repoRoot = git rev-parse --show-toplevel; $env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend")); python -m unittest discover -s backend/tests`
 - `Get-ChildItem backend\agclaw_backend\*.py | ForEach-Object { python -m py_compile $_.FullName }`
 - `cd promptfoo && npm run gate`
 

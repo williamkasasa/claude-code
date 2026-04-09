@@ -161,14 +161,18 @@ export function getBuddySeed(): string {
     return DEFAULT_BUDDY_SEED;
   }
 
-  const existing = window.localStorage.getItem(BUDDY_STORAGE_KEY);
-  if (existing) {
-    return existing;
-  }
+  try {
+    const existing = window.localStorage.getItem(BUDDY_STORAGE_KEY);
+    if (existing) {
+      return existing;
+    }
 
-  const seed = `${DEFAULT_BUDDY_SEED}:${window.location.hostname || "local"}`;
-  window.localStorage.setItem(BUDDY_STORAGE_KEY, seed);
-  return seed;
+    const seed = `${DEFAULT_BUDDY_SEED}:${window.location.hostname || "local"}`;
+    window.localStorage.setItem(BUDDY_STORAGE_KEY, seed);
+    return seed;
+  } catch {
+    return `${DEFAULT_BUDDY_SEED}:${window.location.hostname || "local"}`;
+  }
 }
 
 export function rarityClassName(rarity: BuddyRarity): string {

@@ -31,15 +31,17 @@ Use two terminals if you want the real clean-room backend behind the temporary w
 Terminal A:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
-$env:PYTHONPATH = (Resolve-Path .\backend)
+$repoRoot = git rev-parse --show-toplevel
+Set-Location $repoRoot
+$env:PYTHONPATH = (Resolve-Path ./backend)
 python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
 
 Terminal B:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm install
 $env:AGCLAW_BACKEND_URL = "http://127.0.0.1:8008"
 $env:AGCLAW_WEB_ROOT = ".."
@@ -51,10 +53,10 @@ Then open `http://127.0.0.1:3000`.
 If you only want a fast mock-backed browser demo, skip the backend terminal and run:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm install
-npm run build
-node .\scripts\start-e2e-server.mjs
+node .\scripts\start-playwright-stack.mjs 8108
 ```
 
 That serves the UI at `http://127.0.0.1:3100`.
@@ -64,8 +66,9 @@ That serves the UI at `http://127.0.0.1:3100`.
 PowerShell:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
-$env:PYTHONPATH = (Resolve-Path .\backend)
+$repoRoot = git rev-parse --show-toplevel
+Set-Location $repoRoot
+$env:PYTHONPATH = (Resolve-Path ./backend)
 python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
 
@@ -91,7 +94,8 @@ Key endpoints:
 PowerShell:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm install
 $env:AGCLAW_BACKEND_URL = "http://127.0.0.1:8008"
 $env:AGCLAW_WEB_ROOT = ".."
@@ -103,10 +107,10 @@ Open `http://127.0.0.1:3000`.
 If you want a quick mock-backed stack for browser testing, the Playwright launcher will start the backend in mock mode automatically:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm install
-npm run build
-node .\scripts\start-e2e-server.mjs
+node .\scripts\start-playwright-stack.mjs 8108
 ```
 
 That serves the UI at `http://127.0.0.1:3100`.
@@ -114,7 +118,8 @@ That serves the UI at `http://127.0.0.1:3100`.
 ## Run End-To-End Tests
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm install
 npm run e2e
 ```
@@ -126,10 +131,11 @@ The Playwright configuration builds the web app and launches the local mock back
 The MCP explorer is for research against the reference `src/` tree. It is not part of the clean-room runtime.
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\mcp-server"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "mcp-server")
 npm install
 npm run build
-$env:AGCLAW_REFERENCE_SRC_ROOT = (Resolve-Path ..\src)
+$env:AGCLAW_REFERENCE_SRC_ROOT = (Resolve-Path ../src)
 node .\dist\src\index.js
 ```
 
@@ -140,24 +146,72 @@ The explorer also accepts legacy `CLAUDE_CODE_SRC_ROOT` for compatibility, but n
 Backend:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
-$env:PYTHONPATH = (Resolve-Path .\backend)
+$repoRoot = git rev-parse --show-toplevel
+Set-Location $repoRoot
+$env:PYTHONPATH = (Resolve-Path ./backend)
 python -m unittest discover -s backend/tests
 ```
 
 Web:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\web"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
 npm run build
 ```
 
 MCP explorer:
 
 ```powershell
-Set-Location "d:\OneDrive - AG SOLUTION\claude-code\mcp-server"
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "mcp-server")
 npm run build
 ```
+
+## Optional LiteLLM Gateway
+
+If you want one control plane in front of multiple models, point the UI at LiteLLM through the existing `openai-compatible` provider.
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location $repoRoot
+litellm --host 127.0.0.1 --port 4000
+```
+
+Then in the AG-Claw settings UI:
+
+- Provider: `openai-compatible`
+- API URL: `http://127.0.0.1:4000`
+- API key: your LiteLLM bearer token if enabled
+
+That same gateway URL also works with the local benchmark script below.
+
+## Governed Eval Assets
+
+The `promptfoo` pack now includes an allowlisted Hugging Face ingestion path for evaluation assets.
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "promptfoo")
+npm install
+npm run import:hf-assets -- --dataset rico-screen2words --limit 20
+```
+
+Imported samples are written under `promptfoo/cases/hf/` and include governance metadata from the allowlist manifest.
+
+If Hugging Face traffic is intercepted by a corporate proxy, set `AGCLAW_HF_CA_FILE` to the proxy PEM bundle before running the importer. Use `AGCLAW_HF_ALLOW_INSECURE_TLS=1` only as a temporary fallback.
+
+## Local Benchmark Pass
+
+To compare the small local assistant defaults from this slice:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location $repoRoot
+node .\scripts\benchmark-local-assistants.mjs --models qwen2.5:3b,gemma3:1b
+```
+
+Use `--api-base http://127.0.0.1:4000/v1/chat/completions` to run the same pass through LiteLLM instead of Ollama.
 
 ## Related Docs
 
@@ -166,15 +220,7 @@ npm run build
 - `docs/agclaw-vision-runbook.md` for screen interpretation validation
 - `docs/repo-status.md` for current migration status
 
----
-
-<a href="https://www.star-history.com/?repos=codeaashu%2Fclaude-code&type=date&legend=bottom-right">
- <picture>
-	 <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=codeaashu/claude-code&type=date&theme=dark&legend=bottom-right" />
-	 <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=codeaashu/claude-code&type=date&legend=bottom-right" />
-	 <img alt="Star History Chart" src="https://api.star-history.com/image?repos=codeaashu/claude-code&type=date&legend=bottom-right" />
- </picture>
-</a>
+[![Star History Chart](https://api.star-history.com/image?repos=codeaashu/claude-code&type=date&legend=bottom-right)](https://www.star-history.com/#codeaashu/claude-code&Date)
 
 ## Operating Rule
 

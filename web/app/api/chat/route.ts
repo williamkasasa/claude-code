@@ -134,11 +134,21 @@ async function proxyToBackend(req: NextRequest, body: ChatRequestBody) {
     return null;
   }
 
-  const response = await fetch(`${backendUrl.replace(/\/+$/, "")}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${backendUrl.replace(/\/+$/, "")}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: req.signal,
+      cache: "no-store",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Backend proxy failed" },
+      { status: 502 }
+    );
+  }
 
   return new NextResponse(response.body, {
     status: response.status,
@@ -169,7 +179,11 @@ async function handleMockChat(body: ChatRequestBody) {
   });
 }
 
-async function handleAnthropic(body: ChatRequestBody, settings: Required<RequestSettings>) {
+async function handleAnthropic(
+  body: ChatRequestBody,
+  settings: Required<RequestSettings>,
+  signal: AbortSignal
+) {
   const apiKey = settings.apiKey || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "Anthropic API key is required" }, { status: 400 });
@@ -191,10 +205,43 @@ async function handleAnthropic(body: ChatRequestBody, settings: Required<Request
       max_tokens: settings.maxTokens,
       stream: body.stream !== false,
     }),
+    cache: "no-store",
+    signal,
   });
 
   if (!upstreamResponse.ok) {
     return createUpstreamError(upstreamResponse, await upstreamResponse.text());
+  }
+
+  if (body.stream === false) {
+    const payload = (await upstreamResponse.json()) as {
+      content?: Array<{ type?: string; text?: string }>;
+      error?: { message?: string };
+    };
+
+    if (payload.error?.message) {
+      return NextResponse.json({ error: payload.error.message }, { status: 502 });
+    }
+
+    const content = (payload.content ?? [])
+      .filter((item) => item.type === "text")
+      .map((item) => item.text ?? "")
+      .join("");
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(sseMessage({ type: "text", content }));
+        controller.enqueue(sseDone());
+        controller.close();
+      },
+    });
+
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+      },
+    });
   }
 
   const stream = new ReadableStream({
@@ -250,7 +297,11 @@ async function handleAnthropic(body: ChatRequestBody, settings: Required<Request
   });
 }
 
-async function handleOpenAiCompatible(body: ChatRequestBody, settings: Required<RequestSettings>) {
+async function handleOpenAiCompatible(
+  body: ChatRequestBody,
+  settings: Required<RequestSettings>,
+  signal: AbortSignal
+) {
   const baseUrl = normalizeBaseUrl(settings.apiUrl, DEFAULT_PROVIDER_URLS[settings.provider]);
   const { system, messages } = buildConversationPayload(body.messages ?? [], settings.systemPrompt);
   const upstreamMessages = system ? [{ role: "system", content: system }, ...messages] : messages;
@@ -274,6 +325,8 @@ async function handleOpenAiCompatible(body: ChatRequestBody, settings: Required<
       max_tokens: settings.maxTokens,
       stream: body.stream !== false,
     }),
+    cache: "no-store",
+    signal,
   });
 
   if (!upstreamResponse.ok) {
@@ -399,10 +452,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (settings.provider === "anthropic") {
-      return handleAnthropic(body, settings);
+      return handleAnthropic(body, settings, req.signal);
     }
 
-    return handleOpenAiCompatible(body, settings);
+    return handleOpenAiCompatible(body, settings, req.signal);
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
