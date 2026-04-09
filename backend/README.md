@@ -75,12 +75,12 @@ Each dataset has:
 
 ## Vision validation runbook
 
-Example local OpenAI-compatible vision configuration:
+Validated local Ollama vision configuration:
 
 ```powershell
-$env:AGCLAW_SCREEN_VISION_PROVIDER = "openai-compatible"
-$env:AGCLAW_SCREEN_VISION_BASE_URL = "http://127.0.0.1:8000"
-$env:AGCLAW_SCREEN_VISION_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
+$env:AGCLAW_SCREEN_VISION_PROVIDER = "ollama"
+$env:AGCLAW_SCREEN_VISION_BASE_URL = "http://127.0.0.1:11434"
+$env:AGCLAW_SCREEN_VISION_MODEL = "qwen2.5vl:3b"
 ```
 
 Then:
@@ -91,6 +91,8 @@ python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
 
 Use the web `HMI Review` tool or call `POST /api/mes/interpret-screen`. The response `adapter` field should switch from `heuristic` to your configured provider name when the endpoint is active.
+
+This local Ollama path was validated against a synthetic HMI-style PNG on this workstation. The endpoint returned `adapter: "ollama"` and a non-empty vision summary.
 
 ## Benchmark
 
@@ -138,6 +140,18 @@ Run:
 ```powershell
 $env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
 $env:AGCLAW_LIVE_PROVIDER_TESTS = "1"
+python -m unittest backend.tests.test_live_providers
+```
+
+Example session-only hosted validation:
+
+```powershell
+$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$env:AGCLAW_LIVE_PROVIDER_TESTS = "1"
+$env:GITHUB_TOKEN = "<token>"
+$env:AGCLAW_LIVE_GITHUB_MODELS_MODEL = "openai/gpt-4.1-mini"
+$env:OPENAI_API_KEY = "<token>"
+$env:AGCLAW_LIVE_OPENAI_HOSTED_MODEL = "gpt-4.1-mini"
 python -m unittest backend.tests.test_live_providers
 ```
 

@@ -64,6 +64,12 @@ const HF_QWEN_CODER_7B: ModelOption = {
   description: "Compact open-weight coding model",
 };
 
+const HF_QWEN_CODER_3B: ModelOption = {
+  id: "Qwen/Qwen2.5-Coder-3B-Instruct",
+  label: "Qwen2.5 Coder 3B",
+  description: "Lower-latency coding model for constrained local hardware",
+};
+
 const HF_QWEN_CODER_14B: ModelOption = {
   id: "Qwen/Qwen2.5-Coder-14B-Instruct",
   label: "Qwen2.5 Coder 14B",
@@ -86,6 +92,12 @@ const HF_QWEN_VL_7B: ModelOption = {
   id: "Qwen/Qwen2.5-VL-7B-Instruct",
   label: "Qwen2.5 VL 7B",
   description: "Vision-capable model for HMI and screenshot review",
+};
+
+const HF_QWEN_VL_3B: ModelOption = {
+  id: "Qwen/Qwen2.5-VL-3B-Instruct",
+  label: "Qwen2.5 VL 3B",
+  description: "Lower-footprint vision model for local HMI and screenshot review",
 };
 
 const HF_GEMMA4_E2B: ModelOption = {
@@ -127,10 +139,12 @@ const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
     { id: "gpt-4o", label: "gpt-4o", description: "Higher-capability multimodal model" },
   ],
   "openai-compatible": [
+    HF_QWEN_CODER_3B,
     HF_QWEN_CODER_7B,
     HF_QWEN_CODER_14B,
     HF_QWEN_CODER_32B,
     HF_QWEN3_CODER_30B,
+    HF_QWEN_VL_3B,
     HF_QWEN_VL_7B,
     HF_GEMMA4_E2B,
     HF_GEMMA4_E4B,
@@ -139,15 +153,22 @@ const MODEL_OPTIONS: Record<ChatProvider, ModelOption[]> = {
   ],
   ollama: [
     { id: "qwen2.5-coder:7b", label: "qwen2.5-coder:7b", description: "Good local coding default" },
+    { id: "qwen2.5-coder:3b", label: "qwen2.5-coder:3b", description: "Faster local coding option for lower VRAM" },
+    { id: "qwen2.5:3b", label: "qwen2.5:3b", description: "Small general-purpose local assistant" },
+    { id: "qwen2.5vl:3b", label: "qwen2.5vl:3b", description: "Local multimodal model validated for HMI review" },
+    { id: "llama3.2:3b", label: "llama3.2:3b", description: "Small general local assistant with broad ecosystem support" },
+    { id: "gemma3:1b", label: "gemma3:1b", description: "Small Gemma-family local assistant for low-latency fallback" },
     { id: "qwen2.5-vl:7b", label: "qwen2.5-vl:7b", description: "Local vision-capable model for HMI review" },
     { id: "llama3.1:8b", label: "llama3.1:8b", description: "General-purpose local assistant" },
     { id: "deepseek-coder:6.7b", label: "deepseek-coder:6.7b", description: "Compact coding model" },
   ],
   vllm: [
+    HF_QWEN_CODER_3B,
     HF_QWEN_CODER_7B,
     HF_QWEN_CODER_14B,
     HF_QWEN_CODER_32B,
     HF_QWEN3_CODER_30B,
+    HF_QWEN_VL_3B,
     HF_QWEN_VL_7B,
     HF_GEMMA4_E2B,
     HF_GEMMA4_E4B,

@@ -14,6 +14,30 @@ function Test-CommandAvailable {
   return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Resolve-OllamaCommand {
+  $fromPath = Get-Command ollama -ErrorAction SilentlyContinue
+  if ($fromPath) {
+    return $fromPath.Source
+  }
+
+  $candidates = @(
+    "D:\Apps\Ollama\ollama.exe",
+    (Join-Path $env:LOCALAPPDATA "Programs\Ollama\ollama.exe")
+  )
+
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) {
+      $parent = Split-Path -Parent $candidate
+      if ($env:PATH -notlike "*$parent*") {
+        $env:PATH = "$parent;$env:PATH"
+      }
+      return $candidate
+    }
+  }
+
+  return $null
+}
+
 function Wait-HttpReady {
   param(
     [string]$Url,
@@ -48,7 +72,8 @@ if (-not (Test-CommandAvailable npm)) {
   throw "npm is not available on PATH. Install Node.js or fix PATH before running AG-Claw."
 }
 
-if (-not (Test-CommandAvailable ollama)) {
+$ollamaCommand = Resolve-OllamaCommand
+if (-not $ollamaCommand) {
   throw "ollama is not available on PATH. Install Ollama first, then rerun this script."
 }
 
@@ -63,7 +88,7 @@ if (-not $SkipOllamaHealthCheck) {
 
   if (-not $ollamaReady) {
     Write-Host "Starting Ollama service..." -ForegroundColor Cyan
-    Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Normal | Out-Null
+    Start-Process -FilePath $ollamaCommand -ArgumentList "serve" -WindowStyle Normal | Out-Null
     if (-not (Wait-HttpReady -Url $ollamaUrl -TimeoutSeconds 20)) {
       throw "Ollama did not become healthy on 127.0.0.1:11434."
     }
@@ -72,7 +97,7 @@ if (-not $SkipOllamaHealthCheck) {
 
 if ($PullModel) {
   Write-Host "Pulling Ollama model $Model..." -ForegroundColor Cyan
-  & ollama pull $Model
+  & $ollamaCommand pull $Model
   if ($LASTEXITCODE -ne 0) {
     throw "ollama pull failed for model $Model"
   }

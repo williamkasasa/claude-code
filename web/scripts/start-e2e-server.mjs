@@ -9,6 +9,7 @@ const repoRoot = path.resolve(webDir, "..");
 const nextBin = path.resolve(webDir, "node_modules", "next", "dist", "bin", "next");
 const port = process.env.PORT ?? "3100";
 const backendPort = process.env.AGCLAW_BACKEND_PORT ?? "8008";
+const liveVision = process.env.AGCLAW_E2E_LIVE_VISION === "1";
 
 const backend = spawn(
   "python",
@@ -22,6 +23,15 @@ const backend = spawn(
       AGCLAW_BACKEND_MOCK_CHAT: "1",
       AGCLAW_BACKEND_MOCK_HEALTH: "1",
       AGCLAW_BACKEND_QUIET: "1",
+      ...(liveVision
+        ? {
+            AGCLAW_SCREEN_VISION_PROVIDER: process.env.AGCLAW_SCREEN_VISION_PROVIDER ?? "ollama",
+            AGCLAW_SCREEN_VISION_BASE_URL: process.env.AGCLAW_SCREEN_VISION_BASE_URL ?? "http://127.0.0.1:11434",
+            AGCLAW_SCREEN_VISION_MODEL: process.env.AGCLAW_SCREEN_VISION_MODEL ?? "qwen2.5vl:3b",
+            AGCLAW_SCREEN_VISION_API_KEY: process.env.AGCLAW_SCREEN_VISION_API_KEY ?? "",
+            AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS: process.env.AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS ?? "180",
+          }
+        : {}),
     },
   }
 );

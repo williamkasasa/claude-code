@@ -19,6 +19,16 @@ Default model:
 
 - `qwen2.5-coder:7b`
 
+Fast fallback for this laptop:
+
+- `qwen2.5-coder:3b`
+
+Small general-purpose local options:
+
+- `qwen2.5:3b`
+- `llama3.2:3b`
+- `gemma3:1b`
+
 This script will:
 
 - verify Python, npm, and Ollama are available
@@ -55,19 +65,51 @@ npm run dev
 - click `Check`
 - chat
 
+If you want lower latency on this laptop, switch the model to:
+
+- `qwen2.5-coder:3b`
+
 ## Vision-capable local model
 
-Example target:
+Validated local Ollama target:
 
-- `Qwen/Qwen2.5-VL-7B-Instruct`
+- `qwen2.5vl:3b`
 
-If your local endpoint exposes a compatible vision model, configure:
+Pull it:
 
 ```powershell
-$env:AGCLAW_SCREEN_VISION_PROVIDER="openai-compatible"
-$env:AGCLAW_SCREEN_VISION_BASE_URL="http://127.0.0.1:8000"
-$env:AGCLAW_SCREEN_VISION_MODEL="Qwen/Qwen2.5-VL-7B-Instruct"
+& "D:\Apps\Ollama\ollama.exe" pull qwen2.5vl:3b
 ```
+
+Then configure the AG-Claw backend:
+
+```powershell
+$env:AGCLAW_SCREEN_VISION_PROVIDER="ollama"
+$env:AGCLAW_SCREEN_VISION_BASE_URL="http://127.0.0.1:11434"
+$env:AGCLAW_SCREEN_VISION_MODEL="qwen2.5vl:3b"
+```
+
+This path was validated locally against `POST /api/mes/interpret-screen` using a synthetic HMI-style PNG. The response `adapter` switched from `heuristic` to `ollama`.
+
+Backend validation command:
+
+```powershell
+$env:PYTHONPATH = "d:\OneDrive - AG SOLUTION\claude-code\backend"
+$env:AGCLAW_LIVE_VISION_TESTS = "1"
+python -m unittest backend.tests.test_live_vision
+```
+
+Optional browser validation:
+
+```powershell
+cd "d:\OneDrive - AG SOLUTION\claude-code\web"
+$env:AGCLAW_E2E_LIVE_VISION = "1"
+npm run e2e -- --grep "live local vision adapter"
+```
+
+## Gemma note
+
+Gemma 4 is available on Hugging Face and already represented in the hosted-compatible model catalog, but it is not the first local recommendation for this laptop. The practical Gemma-family local fallback here is still a smaller Ollama model such as `gemma3:1b`.
 
 ## Hosted provider envs for current session only
 

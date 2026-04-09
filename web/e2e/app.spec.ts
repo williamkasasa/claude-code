@@ -1,3 +1,4 @@
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 test("chat, research tools, collaboration, settings, file explorer, and share flows work", async ({ page }) => {
@@ -104,4 +105,29 @@ test("chat, research tools, collaboration, settings, file explorer, and share fl
   await page.goto(shareUrl);
   await expect(page.getByRole("heading", { name: "New conversation" })).toBeVisible();
   await expect(page.getByText("AG-Claw research reply via ollama on qwen2.5-coder:7b: buddy status")).toBeVisible();
+});
+
+test("live local vision adapter handles screenshot upload when enabled", async ({ page }) => {
+  test.skip(process.env.AGCLAW_E2E_LIVE_VISION !== "1", "Set AGCLAW_E2E_LIVE_VISION=1 to run local vision E2E.");
+  test.setTimeout(180_000);
+
+  await page.addInitScript(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Research tools" }).click();
+  await page.getByRole("button", { name: "HMI Review" }).click();
+
+  const fixturePath = path.resolve(__dirname, "fixtures", "hmi-sample.png");
+  await page.locator('input[type="file"]').setInputFiles(fixturePath);
+  await page.getByRole("button", { name: "Interpret screen" }).click();
+
+  await expect(page.getByText("Reviewed screen 'Mixer release screen' in research mode.")).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect(page.getByText("Adapter: ollama")).toBeVisible({ timeout: 120000 });
+  await expect(page.getByText(/Vision summary:/)).toBeVisible({ timeout: 120000 });
+  await expect(page.getByText(/Batch Number|Batch:/)).toBeVisible({ timeout: 120000 });
 });

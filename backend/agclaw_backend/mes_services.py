@@ -20,7 +20,12 @@ from .contracts import (
 )
 
 
-def _request_json(url: str, payload: dict[str, object], headers: dict[str, str]) -> dict[str, object]:
+def _request_json(
+    url: str,
+    payload: dict[str, object],
+    headers: dict[str, str],
+    timeout_seconds: float = 30.0,
+) -> dict[str, object]:
     request = Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
@@ -28,7 +33,7 @@ def _request_json(url: str, payload: dict[str, object], headers: dict[str, str])
         method="POST",
     )
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=timeout_seconds) as response:
             return json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         body = error.read().decode("utf-8")
@@ -107,6 +112,14 @@ def _vision_adapter() -> tuple[str, str, str, str]:
     return provider, base_url, api_key, model
 
 
+def _vision_timeout_seconds() -> float:
+    raw_value = os.getenv("AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS", "180").strip()
+    try:
+        return max(30.0, float(raw_value))
+    except ValueError:
+        return 180.0
+
+
 def _run_openai_vision(prompt: str, image_data_url: str) -> tuple[str, str]:
     provider, base_url, api_key, model = _vision_adapter()
     if provider not in {"github-models", "openai", "openai-compatible", "ollama", "vllm"} or not base_url or not model or not image_data_url:
@@ -136,7 +149,7 @@ def _run_openai_vision(prompt: str, image_data_url: str) -> tuple[str, str]:
         target = f"{base_url.rstrip('/')}/chat/completions"
     else:
         target = f"{base_url.rstrip('/')}/v1/chat/completions"
-    response = _request_json(target, payload, headers)
+    response = _request_json(target, payload, headers, timeout_seconds=_vision_timeout_seconds())
     return provider, _extract_vision_summary(response)
 
 
