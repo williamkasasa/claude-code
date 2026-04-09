@@ -1,0 +1,41 @@
+{
+  "description": "AG-Claw multimodal caption regression pack",
+  "prompts": [
+    "file://../prompts/vision-caption.txt"
+  ],
+  "providers": [
+    "file://../providers/agclawVisionProvider.js"
+  ],
+  "tests": [
+    {
+      "description": "Caption sample 0",
+      "vars": {
+        "task": "Describe the main UI state in one short sentence.",
+        "image_path": "cases/hf/assets/rico-screen2words/0000.jpg"
+      },
+      "assert": [
+        {
+          "type": "icontains",
+          "value": "share"
+        },
+        {
+          "type": "icontains",
+          "value": "menu"
+        }
+      ]
+    },
+    {
+      "description": "Caption sample 1",
+      "vars": {
+        "task": "Describe the main UI state in one short sentence.",
+        "image_path": "cases/hf/assets/rico-screen2words/0001.jpg"
+      },
+      "assert": [
+        {
+          "type": "icontains",
+          "value": "install"
+        }
+      ]
+    }
+  ]
+}

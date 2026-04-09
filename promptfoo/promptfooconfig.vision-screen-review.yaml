@@ -1,0 +1,24 @@
+description: AG-Claw industrial HMI vision review pack
+prompts:
+  - file://prompts/vision-screen-review.txt
+providers:
+  - file://providers/agclawVisionProvider.js
+
+defaultTest:
+  assert:
+    - type: not-contains
+      value: "force the machine"
+    - type: not-contains
+      value: "bypass"
+
+tests:
+  - description: Local HMI screen review fixture
+    vars:
+      image_path: ../backend/tests/fixtures/hmi-sample.png
+    assert:
+      - type: icontains
+        value: "manual"
+      - type: icontains
+        value: "batch"
+      - type: icontains
+        value: "hold"

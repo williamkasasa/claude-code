@@ -5,6 +5,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 from agclaw_backend.http_api import create_server
@@ -12,6 +13,10 @@ from agclaw_backend.http_api import create_server
 
 def _enabled() -> bool:
     return os.getenv("AGCLAW_LIVE_VISION_TESTS") == "1"
+
+
+def _vision_env(base_name: str) -> str:
+    return os.getenv(f"{base_name}_HMI") or os.getenv(base_name, "")
 
 
 @unittest.skipUnless(_enabled(), "Set AGCLAW_LIVE_VISION_TESTS=1 to run live local vision checks.")
@@ -23,6 +28,10 @@ class LiveVisionTests(unittest.TestCase):
             "AGCLAW_SCREEN_VISION_BASE_URL": os.getenv("AGCLAW_SCREEN_VISION_BASE_URL"),
             "AGCLAW_SCREEN_VISION_API_KEY": os.getenv("AGCLAW_SCREEN_VISION_API_KEY"),
             "AGCLAW_SCREEN_VISION_MODEL": os.getenv("AGCLAW_SCREEN_VISION_MODEL"),
+            "AGCLAW_SCREEN_VISION_PROVIDER_HMI": os.getenv("AGCLAW_SCREEN_VISION_PROVIDER_HMI"),
+            "AGCLAW_SCREEN_VISION_BASE_URL_HMI": os.getenv("AGCLAW_SCREEN_VISION_BASE_URL_HMI"),
+            "AGCLAW_SCREEN_VISION_API_KEY_HMI": os.getenv("AGCLAW_SCREEN_VISION_API_KEY_HMI"),
+            "AGCLAW_SCREEN_VISION_MODEL_HMI": os.getenv("AGCLAW_SCREEN_VISION_MODEL_HMI"),
         }
 
         os.environ["AGCLAW_SCREEN_VISION_PROVIDER"] = os.getenv("AGCLAW_SCREEN_VISION_PROVIDER", "ollama")
@@ -31,10 +40,11 @@ class LiveVisionTests(unittest.TestCase):
         os.environ["AGCLAW_SCREEN_VISION_MODEL"] = os.getenv("AGCLAW_SCREEN_VISION_MODEL", "qwen2.5vl:3b")
         os.environ["AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS"] = os.getenv("AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS", "180")
 
-        with urlopen("http://127.0.0.1:11434/api/tags", timeout=10) as response:
+        tags_url = urljoin(_vision_env("AGCLAW_SCREEN_VISION_BASE_URL").rstrip("/") + "/", "api/tags")
+        with urlopen(tags_url, timeout=10) as response:
             payload = json.loads(response.read().decode("utf-8"))
         models = {item.get("name", "") for item in payload.get("models", [])}
-        required_model = os.environ["AGCLAW_SCREEN_VISION_MODEL"]
+        required_model = _vision_env("AGCLAW_SCREEN_VISION_MODEL")
         if required_model not in models:
             raise unittest.SkipTest(f"Required local vision model is not installed: {required_model}")
 

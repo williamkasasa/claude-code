@@ -1,0 +1,45 @@
+# Change api_base to http://127.0.0.1:11500 if you route through the E-backed Ollama instance.
+model_list:
+  - model_name: qwen2.5:3b
+    litellm_params:
+      model: ollama/qwen2.5:3b
+      api_base: http://127.0.0.1:11434
+
+  - model_name: gemma3:1b
+    litellm_params:
+      model: ollama/gemma3:1b
+      api_base: http://127.0.0.1:11434
+
+  - model_name: gemma3:4b
+    litellm_params:
+      model: ollama/gemma3:4b
+      api_base: http://127.0.0.1:11434
+
+  - model_name: qwen2.5vl:3b
+    litellm_params:
+      model: ollama/qwen2.5vl:3b
+      api_base: http://127.0.0.1:11434
+
+  - model_name: qwen2.5vl:7b
+    litellm_params:
+      model: ollama/qwen2.5vl:7b
+      api_base: http://127.0.0.1:11500
+
+  - model_name: vision-caption-local
+    litellm_params:
+      model: ollama/qwen2.5vl:7b
+      api_base: http://127.0.0.1:11500
+
+  - model_name: vision-hmi-local
+    litellm_params:
+      model: ollama/qwen2.5vl:7b
+      api_base: http://127.0.0.1:11500
+
+  - model_name: vision-ocr-local
+    litellm_params:
+      model: ollama/gemma3:4b
+      api_base: http://127.0.0.1:11500
+
+general_settings:
+  master_key: agclaw-dev-key
+  completion_model: qwen2.5:3b

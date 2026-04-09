@@ -3,9 +3,16 @@
   "private": true,
   "scripts": {
     "gate": "promptfoo eval -c promptfooconfig.yaml --no-write",
-    "import:hf-assets": "node scripts/import-hf-eval-assets.mjs"
+    "import:hf-assets": "node scripts/import-hf-eval-assets.mjs",
+    "build:hf-evals": "node scripts/build-hf-promptfoo-cases.mjs",
+    "gate:vision-caption": "npm run build:hf-evals && promptfoo eval -c generated/vision-caption.config.json --no-write --max-concurrency 1",
+    "gate:vision-ocr": "npm run build:hf-evals && promptfoo eval -c generated/vision-ocr.config.json --no-write --max-concurrency 1",
+    "gate:vision-screen-review": "promptfoo eval -c promptfooconfig.vision-screen-review.yaml --no-write --max-concurrency 1",
+    "gate:vision-all": "npm run gate:vision-caption && npm run gate:vision-ocr && npm run gate:vision-screen-review"
   },
   "devDependencies": {
-    "promptfoo": "^0.110.0"
+    "axios": "^1.12.2",
+    "promptfoo": "^0.110.0",
+    "sharp": "^0.33.5"
   }
 }

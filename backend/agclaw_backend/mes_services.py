@@ -20,6 +20,18 @@ from .contracts import (
 )
 
 
+def _route_suffix(route_key: str) -> str:
+    normalized = "_".join(part for part in str(route_key or "").strip().upper().split("-") if part)
+    return f"_{normalized}" if normalized else ""
+
+
+def _route_env(base_name: str, route_key: str = "") -> str:
+    routed = os.getenv(f"{base_name}{_route_suffix(route_key)}", "").strip()
+    if routed:
+        return routed
+    return os.getenv(base_name, "").strip()
+
+
 def _request_json(
     url: str,
     payload: dict[str, object],
@@ -104,24 +116,24 @@ def _extract_vision_summary(response: dict[str, object]) -> str:
     return ""
 
 
-def _vision_adapter() -> tuple[str, str, str, str]:
-    provider = os.getenv("AGCLAW_SCREEN_VISION_PROVIDER", "").strip().lower()
-    base_url = os.getenv("AGCLAW_SCREEN_VISION_BASE_URL", "").strip()
-    api_key = os.getenv("AGCLAW_SCREEN_VISION_API_KEY", "").strip()
-    model = os.getenv("AGCLAW_SCREEN_VISION_MODEL", "").strip()
+def _vision_adapter(route_key: str = "") -> tuple[str, str, str, str]:
+    provider = _route_env("AGCLAW_SCREEN_VISION_PROVIDER", route_key).lower()
+    base_url = _route_env("AGCLAW_SCREEN_VISION_BASE_URL", route_key)
+    api_key = _route_env("AGCLAW_SCREEN_VISION_API_KEY", route_key)
+    model = _route_env("AGCLAW_SCREEN_VISION_MODEL", route_key)
     return provider, base_url, api_key, model
 
 
-def _vision_timeout_seconds() -> float:
-    raw_value = os.getenv("AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS", "180").strip()
+def _vision_timeout_seconds(route_key: str = "") -> float:
+    raw_value = _route_env("AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS", route_key) or "180"
     try:
         return max(30.0, float(raw_value))
     except ValueError:
         return 180.0
 
 
-def _run_openai_vision(prompt: str, image_data_url: str) -> tuple[str, str]:
-    provider, base_url, api_key, model = _vision_adapter()
+def _run_openai_vision(prompt: str, image_data_url: str, route_key: str = "") -> tuple[str, str]:
+    provider, base_url, api_key, model = _vision_adapter(route_key)
     if provider not in {"github-models", "openai", "openai-compatible", "ollama", "vllm"} or not base_url or not model or not image_data_url:
         return "heuristic", ""
 
@@ -149,7 +161,7 @@ def _run_openai_vision(prompt: str, image_data_url: str) -> tuple[str, str]:
         target = f"{base_url.rstrip('/')}/chat/completions"
     else:
         target = f"{base_url.rstrip('/')}/v1/chat/completions"
-    response = _request_json(target, payload, headers, timeout_seconds=_vision_timeout_seconds())
+    response = _request_json(target, payload, headers, timeout_seconds=_vision_timeout_seconds(route_key))
     return provider, _extract_vision_summary(response)
 
 
@@ -226,7 +238,7 @@ def interpret_screen(request: ScreenInterpretRequest) -> ScreenInterpretResponse
             "and any operator prompts. Do not suggest control actions."
         )
         try:
-            adapter, vision_summary = _run_openai_vision(vision_prompt, request.image_data_url)
+            adapter, vision_summary = _run_openai_vision(vision_prompt, request.image_data_url, route_key="hmi")
             if vision_summary.strip():
                 observations.append(f"Vision summary: {vision_summary.strip()}")
         except RuntimeError as error:

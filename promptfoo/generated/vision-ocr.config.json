@@ -1,0 +1,37 @@
+{
+  "description": "AG-Claw OCR visual QA regression pack",
+  "prompts": [
+    "file://../prompts/vision-ocr.txt"
+  ],
+  "providers": [
+    "file://../providers/agclawVisionProvider.js"
+  ],
+  "tests": [
+    {
+      "description": "OCR-VQA sample 0",
+      "vars": {
+        "image_path": "cases/hf/assets/ocr-vqa/0000.jpg",
+        "question": "Who wrote this book?"
+      },
+      "assert": [
+        {
+          "type": "icontains",
+          "value": "Philip Marsden"
+        }
+      ]
+    },
+    {
+      "description": "OCR-VQA sample 1",
+      "vars": {
+        "image_path": "cases/hf/assets/ocr-vqa/0001.jpg",
+        "question": "Who wrote this book?"
+      },
+      "assert": [
+        {
+          "type": "icontains",
+          "value": "Maryam Mafi"
+        }
+      ]
+    }
+  ]
+}

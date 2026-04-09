@@ -1,0 +1,7 @@
+{
+  "route_key": "hmi",
+  "system_prompt": "Review industrial screenshots in advisory-only mode. Summarize alarms, operating mode, batch or recipe context, and hold/release state without suggesting control actions.",
+  "task": "Summarize the visible machine state and operator cues from this HMI screenshot.",
+  "image_path": "{{image_path}}",
+  "image_url": "{{image_url}}"
+}

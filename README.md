@@ -175,16 +175,18 @@ If you want one control plane in front of multiple models, point the UI at LiteL
 ```powershell
 $repoRoot = git rev-parse --show-toplevel
 Set-Location $repoRoot
-litellm --host 127.0.0.1 --port 4000
+.\scripts\start-litellm.ps1
 ```
 
 Then in the AG-Claw settings UI:
 
 - Provider: `openai-compatible`
 - API URL: `http://127.0.0.1:4000`
-- API key: your LiteLLM bearer token if enabled
+- API key: `agclaw-dev-key` by default, or your LiteLLM bearer token if you changed it
 
 That same gateway URL also works with the local benchmark script below.
+
+The starter config lives at `litellm/agclaw-config.local.yaml` and exposes `qwen2.5:3b`, `gemma3:1b`, and `qwen2.5vl:3b` through one OpenAI-compatible endpoint.
 
 ## Governed Eval Assets
 
@@ -200,6 +202,18 @@ npm run import:hf-assets -- --dataset rico-screen2words --limit 20
 Imported samples are written under `promptfoo/cases/hf/` and include governance metadata from the allowlist manifest.
 
 If Hugging Face traffic is intercepted by a corporate proxy, set `AGCLAW_HF_CA_FILE` to the proxy PEM bundle before running the importer. Use `AGCLAW_HF_ALLOW_INSECURE_TLS=1` only as a temporary fallback.
+
+Build and run the multimodal promptfoo packs after importing both `rico-screen2words` and `ocr-vqa` samples:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "promptfoo")
+npm install
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER = "ollama"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL = "http://127.0.0.1:11434"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL = "qwen2.5vl:3b"
+npm run gate:vision-all
+```
 
 ## Local Benchmark Pass
 
