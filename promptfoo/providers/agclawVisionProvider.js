@@ -41,6 +41,18 @@ function resolveRouteIntEnv(baseName, routeKey, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function defaultModelForRoute(routeKey) {
+  switch (routeKey) {
+    case "caption":
+    case "hmi":
+      return "qwen2.5vl:7b";
+    case "ocr":
+      return "gemma3:4b";
+    default:
+      return "qwen2.5vl:3b";
+  }
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -203,7 +215,7 @@ class AgClawVisionProvider {
     const routeKey = String(payload.route_key || context?.vars?.route_key || "").trim().toLowerCase();
     const provider = resolveRouteEnv("AGCLAW_PROMPTFOO_VISION_PROVIDER", routeKey, "ollama");
     const baseUrl = normalizeBaseUrl(resolveRouteEnv("AGCLAW_PROMPTFOO_VISION_BASE_URL", routeKey, "http://127.0.0.1:11434"));
-    const model = resolveRouteEnv("AGCLAW_PROMPTFOO_VISION_MODEL", routeKey, "qwen2.5vl:3b");
+    const model = resolveRouteEnv("AGCLAW_PROMPTFOO_VISION_MODEL", routeKey, defaultModelForRoute(routeKey));
     const apiKey = resolveRouteEnv("AGCLAW_PROMPTFOO_VISION_API_KEY", routeKey, "");
     const timeoutMs = resolveRouteIntEnv("AGCLAW_PROMPTFOO_VISION_TIMEOUT_MS", routeKey, 240000);
     const maxRetries = resolveRouteIntEnv("AGCLAW_PROMPTFOO_VISION_RETRIES", routeKey, 1);

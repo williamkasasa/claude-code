@@ -40,6 +40,22 @@ model_list:
       model: ollama/gemma3:4b
       api_base: http://127.0.0.1:11500
 
+  # HuggingFace hosted models — requires HF_TOKEN env var.
+  - model_name: vision-caption-hosted
+    litellm_params:
+      model: huggingface/Qwen/Qwen2.5-VL-7B-Instruct
+      api_key: os.environ/HF_TOKEN
+
+  - model_name: vision-hmi-hosted
+    litellm_params:
+      model: huggingface/Qwen/Qwen2.5-VL-7B-Instruct
+      api_key: os.environ/HF_TOKEN
+
+  - model_name: vision-ocr-hosted
+    litellm_params:
+      model: huggingface/google/gemma-3-4b-it
+      api_key: os.environ/HF_TOKEN
+
 general_settings:
   master_key: agclaw-dev-key
   completion_model: qwen2.5:3b
