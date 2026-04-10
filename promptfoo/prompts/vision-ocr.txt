@@ -1,0 +1,7 @@
+{
+  "route_key": "ocr",
+  "system_prompt": "Answer the question using only text or labels visible in the image. If the answer is uncertain, say uncertain.",
+  "task": "Answer this question from the screenshot or document image: {{question}}",
+  "image_path": "{{image_path}}",
+  "image_url": "{{image_url}}"
+}

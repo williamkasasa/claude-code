@@ -9,6 +9,7 @@ const repoRoot = path.resolve(webDir, "..");
 const nextBin = path.resolve(webDir, "node_modules", "next", "dist", "bin", "next");
 const port = process.env.PORT ?? "3100";
 const backendPort = process.env.AGCLAW_BACKEND_PORT ?? "8008";
+const pythonCommand = process.env.AGCLAW_PYTHON_EXECUTABLE || "python";
 const liveVision = process.env.AGCLAW_E2E_LIVE_VISION === "1";
 const fail = (name) => (error) => {
   console.error(`${name} failed to start:`, error);
@@ -17,7 +18,7 @@ const fail = (name) => (error) => {
 };
 
 const backend = spawn(
-  "python",
+  pythonCommand,
   ["-m", "agclaw_backend.server", "--host", "127.0.0.1", "--port", backendPort],
   {
     cwd: repoRoot,

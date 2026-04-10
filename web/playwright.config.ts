@@ -16,7 +16,7 @@ export default defineConfig({
     command: `node scripts/start-playwright-stack.mjs ${backendPort}`,
     cwd: path.resolve(__dirname),
     url: `http://127.0.0.1:${port}/health`,
-    timeout: 180000,
+    timeout: 600000,
     reuseExistingServer: false,
   },
   projects: [

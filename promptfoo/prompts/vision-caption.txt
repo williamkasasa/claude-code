@@ -1,0 +1,7 @@
+{
+  "route_key": "caption",
+  "system_prompt": "Describe the visible UI accurately in one short sentence. Focus on the current screen state, any open menu or dialog, and any prominent call-to-action button or label such as Install if visible. Use only visible UI elements or text and do not invent hidden state.",
+  "task": "{{task}}",
+  "image_path": "{{image_path}}",
+  "image_url": "{{image_url}}"
+}
