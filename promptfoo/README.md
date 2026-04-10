@@ -57,6 +57,27 @@ $env:AGCLAW_PROMPTFOO_VISION_MODEL_OCR = "gemma3:4b"
 npm run gate:vision-all
 ```
 
+Hosted Hugging Face setup through LiteLLM:
+
+```powershell
+$env:HF_TOKEN = "<token>"
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_CAPTION = "openai-compatible"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_CAPTION = "http://127.0.0.1:4000"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_CAPTION = "vision-caption-hosted"
+
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_HMI = "openai-compatible"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_HMI = "http://127.0.0.1:4000"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_HMI = "vision-hmi-hosted"
+
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_OCR = "openai-compatible"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_OCR = "http://127.0.0.1:4000"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_OCR = "vision-ocr-hosted"
+
+npm run gate:vision-all
+```
+
+Those hosted aliases are defined in `litellm/agclaw-config.local.yaml` and expect LiteLLM to be running with `HF_TOKEN` available.
+
 The promptfoo vision provider now honors per-task overrides via:
 
 - `AGCLAW_PROMPTFOO_VISION_PROVIDER_CAPTION`, `..._BASE_URL_CAPTION`, `..._MODEL_CAPTION`, `..._API_KEY_CAPTION`

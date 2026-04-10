@@ -54,6 +54,12 @@ to the clean backend service instead of using the in-process fallback logic.
   - `AGCLAW_SCREEN_VISION_BASE_URL`
   - `AGCLAW_SCREEN_VISION_API_KEY`
   - `AGCLAW_SCREEN_VISION_MODEL`
+  - optional per-route overrides using `_<ROUTE>` suffixes, for example:
+    - `AGCLAW_SCREEN_VISION_PROVIDER_HMI`
+    - `AGCLAW_SCREEN_VISION_BASE_URL_HMI`
+    - `AGCLAW_SCREEN_VISION_API_KEY_HMI`
+    - `AGCLAW_SCREEN_VISION_MODEL_HMI`
+    - `AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS_HMI`
 
 If no vision adapter is configured, screen review stays in heuristic fallback mode.
 
@@ -76,13 +82,36 @@ Each dataset has:
 
 ## Vision validation runbook
 
-Validated local Ollama vision configuration:
+Validated local HMI vision configuration on this workstation:
 
 ```powershell
-$env:AGCLAW_SCREEN_VISION_PROVIDER = "ollama"
-$env:AGCLAW_SCREEN_VISION_BASE_URL = "http://127.0.0.1:11434"
-$env:AGCLAW_SCREEN_VISION_MODEL = "qwen2.5vl:3b"
+$env:AGCLAW_SCREEN_VISION_PROVIDER_HMI = "ollama"
+$env:AGCLAW_SCREEN_VISION_BASE_URL_HMI = "http://127.0.0.1:11500"
+$env:AGCLAW_SCREEN_VISION_MODEL_HMI = "qwen2.5vl:7b"
+$env:AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS_HMI = "360"
 ```
+
+Validated local promptfoo routing on this workstation:
+
+```powershell
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_CAPTION = "ollama"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_CAPTION = "http://127.0.0.1:11500"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_CAPTION = "qwen2.5vl:7b"
+
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_HMI = "ollama"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_HMI = "http://127.0.0.1:11500"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_HMI = "qwen2.5vl:7b"
+
+$env:AGCLAW_PROMPTFOO_VISION_PROVIDER_OCR = "ollama"
+$env:AGCLAW_PROMPTFOO_VISION_BASE_URL_OCR = "http://127.0.0.1:11500"
+$env:AGCLAW_PROMPTFOO_VISION_MODEL_OCR = "gemma3:4b"
+```
+
+Hosted Hugging Face models can be reached through LiteLLM aliases from `litellm/agclaw-config.local.yaml` by setting `HF_TOKEN` and routing to:
+
+- `vision-caption-hosted`
+- `vision-hmi-hosted`
+- `vision-ocr-hosted`
 
 Then:
 
@@ -94,7 +123,7 @@ python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 
 Use the web `HMI Review` tool or call `POST /api/mes/interpret-screen`. The response `adapter` field should switch from `heuristic` to your configured provider name when the endpoint is active.
 
-This local Ollama path was validated against a synthetic HMI-style PNG on this workstation. The endpoint returned `adapter: "ollama"` and a non-empty vision summary.
+This local Ollama path was validated against a synthetic HMI-style PNG on this workstation. The endpoint returned `adapter: "ollama"` and a non-empty vision summary. Promptfoo `gate:vision-all` also passed on the same machine when caption/HMI were routed to `qwen2.5vl:7b` and OCR was routed to `gemma3:4b`.
 
 ## Benchmark
 
@@ -164,10 +193,10 @@ python -m unittest backend.tests.test_live_providers
 
 - `$repoRoot = git rev-parse --show-toplevel; $env:PYTHONPATH = (Resolve-Path (Join-Path $repoRoot "backend")); python -m unittest discover -s backend/tests`
 - `Get-ChildItem backend\agclaw_backend\*.py | ForEach-Object { python -m py_compile $_.FullName }`
-- `cd promptfoo && npm run gate`
+- `cd promptfoo && npm run gate:vision-all`
 
 ## Next steps
 
-- add a stronger OCR/vision model and parser for legacy HMI screenshots
+- add a single-command launcher for the validated routed local vision stack
 - persist more MES research artifacts beyond orchestration summaries
-- expand the corpus beyond the bundled seed set
+- expand hosted validation coverage once a stable credential path is available

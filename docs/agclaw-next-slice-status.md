@@ -18,9 +18,9 @@ Implemented now:
 
 Still pending or environment-dependent:
 
-- live vision validation against a real configured endpoint on this machine
-- promptfoo gate rerun for this exact branch state
-- broader e2e expansion beyond the focused provider and buddy coverage
+- routed promptfoo multimodal gate rerun once the split-model Ollama runtime on `127.0.0.1:11500` is available again
+- broader e2e expansion beyond the focused provider, buddy, and HMI review coverage
+- hosted multimodal validation once a stable credential path is available for this machine
 
 ## Model Catalog Guidance
 
@@ -115,6 +115,11 @@ node .\scripts\start-e2e-server.mjs
 ```
 
 Then open `http://127.0.0.1:3000` for dev mode or `http://127.0.0.1:3100` for the mock-backed e2e server.
+
+Validated merged-state checks on this workstation:
+
+- backend unit tests via `python -m unittest discover -s backend/tests`
+- browser HMI upload flow through the Playwright stack (`playwright test research-workbench.spec.ts`)
 
 ## Commit Guidance
 
