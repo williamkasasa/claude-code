@@ -83,3 +83,5 @@ No new clean-room UI, backend, export, or runbook surface should introduce `Clau
 - legacy `CLAUDE_CODE_WEB_*` fallbacks have been removed from the shell surface
 - root workspace metadata now identifies the repo as an AG-Claw reference workspace
 - the standalone explorer package is private by default to reduce accidental publication risk
+- the audited runnable web surface now uses AG-Claw naming across metadata, manifest, sidebar, settings copy, export attribution, MCP client info, and web env names
+- remaining `claude-*` mentions in runnable clean-room code are compatibility model ids or one-way local migration keys, not product-facing branding

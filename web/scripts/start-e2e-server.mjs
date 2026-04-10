@@ -31,11 +31,26 @@ const backend = spawn(
       AGCLAW_BACKEND_QUIET: "1",
       ...(liveVision
         ? {
-            AGCLAW_SCREEN_VISION_PROVIDER: process.env.AGCLAW_SCREEN_VISION_PROVIDER ?? "ollama",
-            AGCLAW_SCREEN_VISION_BASE_URL: process.env.AGCLAW_SCREEN_VISION_BASE_URL ?? "http://127.0.0.1:11434",
-            AGCLAW_SCREEN_VISION_MODEL: process.env.AGCLAW_SCREEN_VISION_MODEL ?? "qwen2.5vl:3b",
-            AGCLAW_SCREEN_VISION_API_KEY: process.env.AGCLAW_SCREEN_VISION_API_KEY ?? "",
-            AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS: process.env.AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS ?? "180",
+            AGCLAW_SCREEN_VISION_PROVIDER_HMI:
+              process.env.AGCLAW_SCREEN_VISION_PROVIDER_HMI ??
+              process.env.AGCLAW_SCREEN_VISION_PROVIDER ??
+              "ollama",
+            AGCLAW_SCREEN_VISION_BASE_URL_HMI:
+              process.env.AGCLAW_SCREEN_VISION_BASE_URL_HMI ??
+              process.env.AGCLAW_SCREEN_VISION_BASE_URL ??
+              "http://127.0.0.1:11500",
+            AGCLAW_SCREEN_VISION_MODEL_HMI:
+              process.env.AGCLAW_SCREEN_VISION_MODEL_HMI ??
+              process.env.AGCLAW_SCREEN_VISION_MODEL ??
+              "qwen2.5vl:7b",
+            AGCLAW_SCREEN_VISION_API_KEY_HMI:
+              process.env.AGCLAW_SCREEN_VISION_API_KEY_HMI ??
+              process.env.AGCLAW_SCREEN_VISION_API_KEY ??
+              "",
+            AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS_HMI:
+              process.env.AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS_HMI ??
+              process.env.AGCLAW_SCREEN_VISION_TIMEOUT_SECONDS ??
+              "360",
           }
         : {}),
     },
