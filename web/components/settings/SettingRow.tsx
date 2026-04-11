@@ -55,29 +55,47 @@ interface ToggleProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  ariaLabel?: string;
 }
 
-export function Toggle({ checked, onChange, disabled = false }: ToggleProps) {
-  return (
+export function Toggle({ checked, onChange, disabled = false, ariaLabel = "Toggle setting" }: ToggleProps) {
+  const toggleClassName = cn(
+    "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent",
+    "transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface-900",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    checked ? "bg-brand-600" : "bg-surface-700"
+  );
+  const thumbClassName = cn(
+    "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow",
+    "transition duration-200 ease-in-out",
+    checked ? "translate-x-4" : "translate-x-0"
+  );
+
+  return checked ? (
     <button
+      type="button"
       role="switch"
-      aria-checked={checked}
+      aria-checked="true"
+      aria-label={ariaLabel}
+      title={ariaLabel}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent",
-        "transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-surface-900",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-brand-600" : "bg-surface-700"
-      )}
+      onClick={() => onChange(false)}
+      className={toggleClassName}
     >
-      <span
-        className={cn(
-          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow",
-          "transition duration-200 ease-in-out",
-          checked ? "translate-x-4" : "translate-x-0"
-        )}
-      />
+      <span className={thumbClassName} />
+    </button>
+  ) : (
+    <button
+      type="button"
+      role="switch"
+      aria-checked="false"
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      disabled={disabled}
+      onClick={() => onChange(true)}
+      className={toggleClassName}
+    >
+      <span className={thumbClassName} />
     </button>
   );
 }
@@ -91,9 +109,10 @@ interface SliderProps {
   showValue?: boolean;
   unit?: string;
   className?: string;
+  ariaLabel?: string;
 }
 
-export function Slider({ value, min, max, step = 1, onChange, showValue = true, unit = "", className }: SliderProps) {
+export function Slider({ value, min, max, step = 1, onChange, showValue = true, unit = "", className, ariaLabel = "Setting value" }: SliderProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <input
@@ -103,6 +122,8 @@ export function Slider({ value, min, max, step = 1, onChange, showValue = true, 
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={ariaLabel}
+        title={ariaLabel}
         className="flex-1 h-1.5 bg-surface-700 rounded-full appearance-none cursor-pointer accent-brand-500"
       />
       {showValue && (

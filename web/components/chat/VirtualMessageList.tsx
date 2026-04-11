@@ -76,6 +76,33 @@ export function VirtualMessageList({ messages, isStreaming }: VirtualMessageList
     estimateSize: (index) => estimateMessageHeight(messages[index], availableWidth, pretextEnabled),
     overscan: 5,
   });
+  const virtualizerTotalSize = virtualizer.getTotalSize();
+
+  const bindCanvasRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node) {
+        return;
+      }
+      node.style.height = `${virtualizerTotalSize}px`;
+      node.style.position = "relative";
+    },
+    [virtualizerTotalSize]
+  );
+
+  const bindItemRef = useCallback(
+    (node: HTMLDivElement | null, start: number) => {
+      if (!node) {
+        return;
+      }
+      node.style.position = "absolute";
+      node.style.top = "0";
+      node.style.left = "0";
+      node.style.right = "0";
+      node.style.transform = `translateY(${start}px)`;
+      virtualizer.measureElement(node);
+    },
+    [virtualizer]
+  );
 
   // Track whether the user has scrolled away from the bottom
   const handleScroll = useCallback(() => {
@@ -114,24 +141,14 @@ export function VirtualMessageList({ messages, isStreaming }: VirtualMessageList
       onScroll={handleScroll}
     >
       {/* Spacer that gives the virtualizer its total height */}
-      <div
-        style={{ height: virtualizer.getTotalSize(), position: "relative" }}
-        className="max-w-3xl mx-auto px-4 py-6"
-      >
+      <div ref={bindCanvasRef} className="max-w-3xl mx-auto px-4 py-6">
         {items.map((virtualItem) => {
           const message = messages[virtualItem.index];
           return (
             <div
               key={virtualItem.key}
               data-index={virtualItem.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
+              ref={(node) => bindItemRef(node, virtualItem.start)}
               className="pb-6"
             >
               <MessageBubble message={message} />

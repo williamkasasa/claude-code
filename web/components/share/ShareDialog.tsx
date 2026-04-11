@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Check, Copy, Share2, X } from "lucide-react";
 import { useChatStore } from "@/lib/store";
 import { useNotificationStore } from "@/lib/notifications";
@@ -26,6 +26,9 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const expiryId = useId();
+  const passwordId = useId();
+  const shareUrlId = useId();
 
   if (!open) {
     return null;
@@ -117,8 +120,9 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-surface-200">Expiry</label>
+            <label htmlFor={expiryId} className="mb-2 block text-sm font-medium text-surface-200">Expiry</label>
             <select
+              id={expiryId}
               value={expiry}
               onChange={(event) => setExpiry(event.target.value as ShareExpiry)}
               className="w-full rounded-md border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-100 outline-none focus:border-brand-500"
@@ -133,8 +137,9 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
 
           {visibility === "password" && (
             <div>
-              <label className="mb-2 block text-sm font-medium text-surface-200">Password</label>
+              <label htmlFor={passwordId} className="mb-2 block text-sm font-medium text-surface-200">Password</label>
               <input
+                id={passwordId}
                 type="password"
                 autoComplete="new-password"
                 value={password}
@@ -156,9 +161,11 @@ export function ShareDialog({ open, onClose }: ShareDialogProps) {
 
           {shareUrl && (
             <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4">
-              <div className="mb-2 text-sm font-medium text-surface-100">Share URL</div>
+              <label htmlFor={shareUrlId} className="mb-2 block text-sm font-medium text-surface-100">Share URL</label>
               <div className="flex items-center gap-2">
                 <input
+                  id={shareUrlId}
+                  aria-label="Share URL"
                   readOnly
                   value={shareUrl}
                   className="flex-1 rounded-md border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 outline-none"

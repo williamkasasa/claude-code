@@ -43,23 +43,41 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               aria-hidden="true"
             />
           )}
-          <input
-            id={inputId}
-            ref={ref}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={describedBy || undefined}
-            className={cn(
-              'flex h-9 w-full rounded-md border bg-surface-900 px-3 py-1 text-sm text-surface-100',
-              'border-surface-700 placeholder:text-surface-500',
-              'transition-colors duration-[var(--transition-fast)]',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              variant === 'search' && 'pl-9',
-              error && 'border-red-500 focus-visible:ring-red-500',
-              className
-            )}
-            {...props}
-          />
+          {error ? (
+            <input
+              id={inputId}
+              ref={ref}
+              aria-invalid="true"
+              aria-describedby={describedBy || undefined}
+              className={cn(
+                'flex h-9 w-full rounded-md border bg-surface-900 px-3 py-1 text-sm text-surface-100',
+                'border-surface-700 placeholder:text-surface-500',
+                'transition-colors duration-[var(--transition-fast)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                variant === 'search' && 'pl-9',
+                'border-red-500 focus-visible:ring-red-500',
+                className
+              )}
+              {...props}
+            />
+          ) : (
+            <input
+              id={inputId}
+              ref={ref}
+              aria-describedby={describedBy || undefined}
+              className={cn(
+                'flex h-9 w-full rounded-md border bg-surface-900 px-3 py-1 text-sm text-surface-100',
+                'border-surface-700 placeholder:text-surface-500',
+                'transition-colors duration-[var(--transition-fast)]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                variant === 'search' && 'pl-9',
+                className
+              )}
+              {...props}
+            />
+          )}
         </div>
         {error && (
           <p id={errorId} className="text-xs text-red-400" role="alert">

@@ -32,6 +32,7 @@
 | `p-e-w/heretic` | excluded from current core design |
 
 ## Immediate Replace-Now Targets
+
 - provider abstraction and local-mode UX
 - root orchestration/runtime dependencies
 - clean backend contracts

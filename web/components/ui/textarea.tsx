@@ -53,25 +53,45 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             {label}
           </label>
         )}
-        <textarea
-          id={textareaId}
-          ref={resolvedRef}
-          value={value}
-          onChange={handleChange}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy || undefined}
-          className={cn(
-            'flex min-h-[80px] w-full rounded-md border bg-surface-900 px-3 py-2 text-sm text-surface-100',
-            'border-surface-700 placeholder:text-surface-500',
-            'transition-colors duration-[var(--transition-fast)] resize-none',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            autoGrow && 'overflow-hidden',
-            error && 'border-red-500 focus-visible:ring-red-500',
-            className
-          )}
-          {...props}
-        />
+        {error ? (
+          <textarea
+            id={textareaId}
+            ref={resolvedRef}
+            value={value}
+            onChange={handleChange}
+            aria-invalid="true"
+            aria-describedby={describedBy || undefined}
+            className={cn(
+              'flex min-h-[80px] w-full rounded-md border bg-surface-900 px-3 py-2 text-sm text-surface-100',
+              'border-surface-700 placeholder:text-surface-500',
+              'transition-colors duration-[var(--transition-fast)] resize-none',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              autoGrow && 'overflow-hidden',
+              'border-red-500 focus-visible:ring-red-500',
+              className
+            )}
+            {...props}
+          />
+        ) : (
+          <textarea
+            id={textareaId}
+            ref={resolvedRef}
+            value={value}
+            onChange={handleChange}
+            aria-describedby={describedBy || undefined}
+            className={cn(
+              'flex min-h-[80px] w-full rounded-md border bg-surface-900 px-3 py-2 text-sm text-surface-100',
+              'border-surface-700 placeholder:text-surface-500',
+              'transition-colors duration-[var(--transition-fast)] resize-none',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-transparent',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              autoGrow && 'overflow-hidden',
+              className
+            )}
+            {...props}
+          />
+        )}
         <div className="flex items-start justify-between gap-2">
           <div>
             {error && (
