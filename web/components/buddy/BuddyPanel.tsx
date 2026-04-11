@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 import type { BuddyProfile, BuddySuggestion } from "@/lib/buddy";
 import { getBuddyStatSummary, getBuddyTake, rarityClassName } from "@/lib/buddy";
+import { useChatStore } from "@/lib/store";
+import { getAgentPack, getMemoryNamespace, getWorkflowStages } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 
 interface BuddyPanelProps {
@@ -22,6 +24,11 @@ export function BuddyPanel({
   onClose,
   onUseSuggestion,
 }: BuddyPanelProps) {
+  const settings = useChatStore((state) => state.settings);
+  const activePack = getAgentPack(settings.integrations.activeAgentPack);
+  const activeNamespace = getMemoryNamespace(settings.integrations.memoryNamespace);
+  const workflowStages = getWorkflowStages(settings.integrations.workflowMode);
+
   if (!open) {
     return null;
   }
@@ -70,8 +77,26 @@ export function BuddyPanel({
 
           <section className="rounded-xl border border-surface-800 bg-surface-900/70 p-4">
             <div className="text-xs uppercase tracking-wide text-surface-500">Buddy take</div>
-            <p className="mt-2 text-sm text-surface-200">{getBuddyTake(profile, latestPrompt)}</p>
+            <p className="mt-2 text-sm text-surface-200">
+              {getBuddyTake(profile, latestPrompt, {
+                pack: activePack,
+                memoryNamespace: activeNamespace,
+              })}
+            </p>
             <div className="mt-3 text-xs text-surface-500">Top stat: {getBuddyStatSummary(profile)}</div>
+          </section>
+
+          <section className="rounded-xl border border-surface-800 bg-surface-900/70 p-4">
+            <div className="text-xs uppercase tracking-wide text-surface-500">Active pack</div>
+            <div className="mt-2 text-sm font-medium text-surface-100">{activePack.label}</div>
+            <p className="mt-1 text-sm text-surface-300">{activePack.summary}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {activePack.roles.map((role) => (
+                <span key={role.id} className="rounded-full border border-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                  {role.label}
+                </span>
+              ))}
+            </div>
           </section>
 
           <section className="rounded-xl border border-surface-800 bg-surface-900/70 p-4">
@@ -94,6 +119,16 @@ export function BuddyPanel({
           <section className="rounded-xl border border-surface-800 bg-surface-900/70 p-4">
             <div className="text-xs uppercase tracking-wide text-surface-500">Conversation context</div>
             <p className="mt-2 text-sm text-surface-200">{latestPrompt.trim() || "No active prompt yet. Buddy will react after the first message."}</p>
+            <p className="mt-3 text-xs text-surface-500">
+              {activeNamespace.label}: {activeNamespace.commitModes[settings.integrations.memoryCommitMode]}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {workflowStages.map((stage) => (
+                <span key={stage.id} className="rounded-full border border-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                  {stage.label}
+                </span>
+              ))}
+            </div>
             <p className="mt-3 text-xs text-surface-500">Advisory only. No hidden execution or conversation mutation.</p>
           </section>
         </div>

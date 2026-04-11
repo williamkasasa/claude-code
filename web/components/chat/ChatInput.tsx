@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import type { BuddyProfile, BuddySuggestion } from "@/lib/buddy";
 import { getBuddyTake } from "@/lib/buddy";
+import { getAgentPack, getMemoryNamespace } from "@/lib/integrations";
 import { estimateWrappedLines } from "@/lib/pretextSpike";
 
 interface ChatInputProps {
@@ -36,6 +37,8 @@ export function ChatInput({
 
   const { conversations, settings, addMessage, updateMessage } = useChatStore();
   const conversation = conversations.find((c) => c.id === conversationId);
+  const activePack = useMemo(() => getAgentPack(settings.integrations.activeAgentPack), [settings.integrations.activeAgentPack]);
+  const activeNamespace = useMemo(() => getMemoryNamespace(settings.integrations.memoryNamespace), [settings.integrations.memoryNamespace]);
 
   useEffect(() => {
     if (!pendingBuddyPrompt) {
@@ -50,11 +53,22 @@ export function ChatInput({
   }, [pendingBuddyPrompt, onBuddyPromptApplied]);
 
   const helperSummary = useMemo(
-    () => (buddyProfile ? getBuddyTake(buddyProfile, latestPrompt ?? "") : "Buddy helper is unavailable in this layout."),
-    [buddyProfile, latestPrompt]
+    () =>
+      buddyProfile
+        ? getBuddyTake(buddyProfile, latestPrompt ?? "", {
+            pack: activePack,
+            memoryNamespace: activeNamespace,
+          })
+        : "Buddy helper is unavailable in this layout.",
+    [activeNamespace, activePack, buddyProfile, latestPrompt]
   );
 
-  const estimatedRows = Math.min(6, estimateWrappedLines(input || helperSummary, 560));
+  const estimatedRows = Math.min(
+    6,
+    estimateWrappedLines(input || helperSummary, 560, {
+      whiteSpace: "pre-wrap",
+    })
+  );
 
   const handleSubmit = useCallback(async () => {
     const text = input.trim();

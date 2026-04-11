@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChatStore } from "@/lib/store";
-import { MessageBubble } from "./MessageBubble";
+import { extractTextContent } from "@/lib/utils";
 import { Bot } from "lucide-react";
+import { VirtualMessageList } from "./VirtualMessageList";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -31,7 +32,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       lastMsg.status === "complete"
     ) {
       // Announce a short preview so screen reader users know a reply arrived
-      const preview = lastMsg.content.slice(0, 100);
+      const preview = extractTextContent(lastMsg.content).slice(0, 100);
       setAnnouncement("");
       setTimeout(() => setAnnouncement(`AG-Claw replied: ${preview}`), 50);
     }
@@ -58,10 +59,7 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
   }
 
   return (
-    <div
-      className="flex-1 overflow-y-auto"
-      aria-label="Conversation"
-    >
+    <div className="flex flex-1 flex-col" aria-label="Conversation">
       {/* Polite live region announces when AG-Claw finishes a reply. */}
       <div
         role="status"
@@ -72,12 +70,8 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
         {announcement}
       </div>
 
-      <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
-        <div ref={bottomRef} aria-hidden="true" />
-      </div>
+      <VirtualMessageList messages={messages} isStreaming={isStreaming} />
+      <div ref={bottomRef} aria-hidden="true" />
     </div>
   );
 }

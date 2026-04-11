@@ -20,7 +20,14 @@
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
-    "check": "biome check src/ && tsc --noEmit"
+    "check": "biome check src/ && tsc --noEmit",
+    "promptfoo:latest": "powershell -ExecutionPolicy Bypass -File ./scripts/check-promptfoo-latest.ps1",
+    "audit:web-ui": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1",
+    "audit:web:common": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1 -Preset common-pages",
+    "audit:web:chat-shell": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1 -Preset chat-shell",
+    "audit:web:buddy": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1 -Preset buddy",
+    "audit:web:settings": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1 -Preset settings",
+    "audit:web:url:home": "powershell -ExecutionPolicy Bypass -File ./scripts/run-impeccable-web-audit.ps1 -Preset home-url"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

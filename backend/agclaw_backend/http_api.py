@@ -169,16 +169,28 @@ class AgClawApiHandler(BaseHTTPRequestHandler):
 
             if self.path == "/api/orchestrate":
                 body = self._read_json()
+                context_payload = body.get("context") or {}
+                metadata = context_payload.get("metadata", {})
+                if not isinstance(metadata, dict):
+                    metadata = {}
+                metadata = {
+                    **{
+                        key: value
+                        for key, value in context_payload.items()
+                        if key not in {"workspace_root", "project_name", "safety_mode", "metadata"}
+                    },
+                    **metadata,
+                }
                 request = ResearchRequest(
                     prompt=body.get("prompt", ""),
                     provider=ChatProvider(body.get("provider", ChatProvider.OLLAMA.value)),
                     model=body.get("model", "qwen2.5-coder:7b"),
-                    roles=[OrchestratorRole(role) for role in body.get("roles", [OrchestratorRole.PLC_ANALYST.value])],
+                    roles=[str(role) for role in body.get("roles", [OrchestratorRole.PLC_ANALYST.value])],
                     context=ResearchContext(
-                        workspace_root=(body.get("context") or {}).get("workspace_root", os.getcwd()),
-                        project_name=(body.get("context") or {}).get("project_name", "ag-claw"),
-                        safety_mode=(body.get("context") or {}).get("safety_mode", "advisory-only"),
-                        metadata=(body.get("context") or {}).get("metadata", {}),
+                        workspace_root=context_payload.get("workspace_root", os.getcwd()),
+                        project_name=context_payload.get("project_name", "ag-claw"),
+                        safety_mode=context_payload.get("safety_mode", "advisory-only"),
+                        metadata=metadata,
                     ),
                     attachments=body.get("attachments", []),
                 )

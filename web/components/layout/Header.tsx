@@ -5,6 +5,7 @@ import { PawPrint, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useChatStore } from "@/lib/store";
 import { getModelOptions } from "@/lib/constants";
+import { getAgentPack } from "@/lib/integrations";
 import { cn } from "@/lib/utils";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { ShareDialog } from "@/components/share/ShareDialog";
@@ -21,6 +22,7 @@ export function Header({ buddyProfile, onOpenBuddy }: HeaderProps) {
   const { settings, updateSettings, openSettings, getActiveConversation } = useChatStore();
   const [shareOpen, setShareOpen] = useState(false);
   const modelOptions = useMemo(() => getModelOptions(settings.provider), [settings.provider]);
+  const activePack = useMemo(() => getAgentPack(settings.integrations.activeAgentPack), [settings.integrations.activeAgentPack]);
 
   const themeIcons = {
     light: Sun,
@@ -54,6 +56,9 @@ export function Header({ buddyProfile, onOpenBuddy }: HeaderProps) {
 
           <span className="hidden rounded-md border border-surface-700 px-2 py-1 text-[11px] text-surface-400 md:inline-flex">
             {settings.localMode ? "Local mode" : settings.provider}
+          </span>
+          <span className="hidden rounded-md border border-surface-700 px-2 py-1 text-[11px] text-surface-400 lg:inline-flex">
+            {activePack.label}
           </span>
 
           <label htmlFor="model-select" className="sr-only">

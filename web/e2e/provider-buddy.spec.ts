@@ -27,7 +27,7 @@ test.describe("Provider switching and Buddy panel", () => {
     await expect(page.getByText("Visible advisory companion")).toBeVisible();
     await page.locator("div.fixed.inset-0").getByRole("button", { name: /Risk check/ }).click();
     await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(
-      /buddy: list the top 3 operational risks/i
+      /top 3 operational risks/i
     );
   });
 });

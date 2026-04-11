@@ -8,6 +8,7 @@ import {
   Server,
   Keyboard,
   Database,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export type SettingsSection =
   | "permissions"
   | "mcp"
   | "keyboard"
+  | "integrations"
   | "data";
 
 interface NavItem {
@@ -33,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "permissions", label: "Permissions", icon: Shield },
   { id: "mcp", label: "MCP Servers", icon: Server },
   { id: "keyboard", label: "Keyboard", icon: Keyboard },
+  { id: "integrations", label: "Integrations", icon: Sparkles },
   { id: "data", label: "Data & Privacy", icon: Database },
 ];
 

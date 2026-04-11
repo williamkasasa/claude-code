@@ -38,7 +38,7 @@ test("chat, research tools, collaboration, settings, file explorer, and share fl
   await page.getByRole("button", { name: "Open buddy panel" }).first().click();
   await expect(page.getByText("Visible advisory companion")).toBeVisible();
   await page.locator("div.fixed.inset-0").getByRole("button", { name: /Risk check/ }).click();
-  await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(/buddy: list the top 3 operational risks/i);
+  await expect(page.getByRole("textbox", { name: "Message" })).toHaveValue(/top 3 operational risks/i);
   await expect(page.getByText("Visible advisory companion")).not.toBeVisible();
 
   await page.getByRole("button", { name: "Comment" }).click();
@@ -60,17 +60,22 @@ test("chat, research tools, collaboration, settings, file explorer, and share fl
   await expect(page.getByText("Batch=42 started by operator=anne")).toBeVisible();
 
   await page.getByRole("button", { name: "Orchestrate" }).click();
+  await expect(page.getByText("Resolved orchestration route")).toBeVisible();
   await page.getByRole("button", { name: "Run orchestration" }).click();
-  await expect(page.getByText("Prepared 3 research roles for model qwen2.5-coder:7b.").first()).toBeVisible();
-  await expect(page.getByText("plc analyst")).toBeVisible();
+  await expect(page.getByText(/Prepared 3 research roles for model .* using Operator swarm\./).first()).toBeVisible();
+  await expect(page.getByText("PLC analyst", { exact: true })).toBeVisible();
   await expect(page.getByText("Check batch genealogy, state transitions, and operator acknowledgement steps.")).toBeVisible();
+  await expect(page.getByText("Current investigation bundle")).toBeVisible();
+  await expect(page.getByText("Nano brief", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share bundle" }).first()).toBeVisible();
   await expect(page.getByText("Recent orchestration runs")).toBeVisible();
   await expect(
     page.getByText("Review the MES release flow for operator approvals and genealogy capture.").first()
   ).toBeVisible();
-  await page.getByRole("button", { name: /Prepared 3 research roles for model qwen2.5-coder:7b./ }).last().click();
+  await page.getByRole("button", { name: /Review the MES release flow for operator approvals and genealogy capture./ }).last().click();
   await expect(page.getByText("Persisted orchestration detail")).toBeVisible();
   await expect(page.getByText("Select provider adapter implementation.")).toBeVisible();
+  await expect(page.getByText("Persisted investigation bundle", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "HMI Review" }).click();
   await page.locator('input[type="file"]').setInputFiles({

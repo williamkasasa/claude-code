@@ -190,8 +190,15 @@ class BackendHttpApiTests(unittest.TestCase):
                     "prompt": "Review MES release flow",
                     "provider": "ollama",
                     "model": "qwen2.5-coder:7b",
-                    "roles": ["plc-analyst", "safety"],
-                    "context": {"workspace_root": "D:/workspace"},
+                    "roles": ["screen-reviewer", "alarm-triage", "operator-handoff"],
+                    "context": {
+                        "workspace_root": "D:/workspace",
+                        "agent_pack": "screen-review",
+                        "memory_namespace": "investigation-bundle",
+                        "memory_commit_mode": "investigation-summary",
+                        "workflow_mode": "review-heavy",
+                        "workflow_stages": ["retrieve", "challenge", "human-review"],
+                    },
                 }
             ).encode("utf-8"),
             headers={"Content-Type": "application/json"},
@@ -200,17 +207,25 @@ class BackendHttpApiTests(unittest.TestCase):
         with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
         self.assertTrue(payload["requires_human_review"])
-        self.assertIn("Prepared 2 research roles", payload["summary"])
-        self.assertEqual(len(payload["role_plans"]), 2)
-        self.assertEqual(payload["role_plans"][0]["role"], "plc-analyst")
+        self.assertIn("Prepared 3 research roles", payload["summary"])
+        self.assertEqual(len(payload["role_plans"]), 3)
+        self.assertEqual(payload["role_plans"][0]["role"], "screen-reviewer")
         self.assertGreaterEqual(len(payload["role_plans"][0]["next_actions"]), 1)
         self.assertGreaterEqual(len(payload["role_plans"][0]["artifacts"]), 1)
         self.assertEqual(payload["role_plans"][0]["artifacts"][0]["review_gate"], "human-review")
+        self.assertEqual(payload["agent_pack"], "screen-review")
+        self.assertEqual(payload["workflow_mode"], "review-heavy")
+        self.assertEqual(payload["workflow_stages"], ["retrieve", "challenge", "human-review"])
+        self.assertIn("Next focus", payload["nano_summary"])
+        self.assertEqual(payload["bundle"]["label"], "Investigation bundle")
+        self.assertEqual(payload["bundle"]["status"], "finalized")
 
         with urlopen(self._url("/api/orchestration/history?limit=5"), timeout=3) as response:
             history_payload = json.loads(response.read().decode("utf-8"))
         self.assertGreaterEqual(len(history_payload["items"]), 1)
         self.assertEqual(history_payload["items"][0]["prompt"], "Review MES release flow")
+        self.assertEqual(history_payload["items"][0]["agent_pack"], "screen-review")
+        self.assertEqual(history_payload["items"][0]["bundle_label"], "Investigation bundle")
         detail_id = history_payload["items"][0]["detail_id"]
 
         with urlopen(self._url(f"/api/orchestration/history/{detail_id}"), timeout=3) as response:
@@ -219,6 +234,10 @@ class BackendHttpApiTests(unittest.TestCase):
         self.assertEqual(detail_payload["prompt"], "Review MES release flow")
         self.assertGreaterEqual(len(detail_payload["role_plans"]), 1)
         self.assertGreaterEqual(len(detail_payload["follow_up_actions"]), 1)
+        self.assertEqual(detail_payload["agent_pack"], "screen-review")
+        self.assertEqual(detail_payload["memory_namespace"], "investigation-bundle")
+        self.assertEqual(detail_payload["bundle"]["label"], "Investigation bundle")
+        self.assertEqual(detail_payload["bundle"]["status"], "finalized")
 
     def test_mes_dataset_catalog_endpoint(self) -> None:
         with urlopen(self._url("/api/mes/datasets"), timeout=3) as response:

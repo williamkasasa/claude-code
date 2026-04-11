@@ -23,11 +23,11 @@
 | `openclaw/openclaw` | control-plane and open architecture reference |
 | `ultraworkers/claw-code` | parity and rewrite reference |
 | `karpathy/nanochat` | minimal chat loop reference for Python backend |
-| `msitarzewski/agency-agents` | role-based orchestration reference |
-| `promptfoo/promptfoo` | direct-fit evaluation dependency candidate |
-| `pbakaus/impeccable` | UI quality workflow reference |
-| `volcengine/OpenViking` | transport reference only after fit validation |
-| `666ghj/MiroFish` | vision/data-processing reference only after fit validation |
+| `msitarzewski/agency-agents` | role-based orchestration reference with checked-in spike doc |
+| `promptfoo/promptfoo` | active evaluation dependency and latest-CLI verification target |
+| `pbakaus/impeccable` | local web-shell audit hook plus UI quality workflow reference |
+| `volcengine/OpenViking` | memory/context reference only after fit validation, with checked-in spike doc |
+| `666ghj/MiroFish` | graph/simulation/reporting reference only after fit validation, with checked-in spike doc |
 | `chenglou/pretext` | general pattern reference only; not a log pre-parser |
 | `p-e-w/heretic` | excluded from current core design |
 

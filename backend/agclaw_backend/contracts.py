@@ -33,7 +33,7 @@ class ResearchRequest:
     prompt: str
     provider: ChatProvider
     model: str
-    roles: list[OrchestratorRole]
+    roles: list[str]
     context: ResearchContext
     attachments: list[str] = field(default_factory=list)
 
@@ -56,12 +56,34 @@ class RolePlan:
 
 
 @dataclass(slots=True)
+class InvestigationBundle:
+    label: str
+    status: str
+    agent_pack: str = ""
+    memory_namespace: str = ""
+    memory_commit_mode: str = ""
+    workflow_mode: str = ""
+    workflow_stages: list[str] = field(default_factory=list)
+    report_sections: list[str] = field(default_factory=list)
+    artifact_titles: list[str] = field(default_factory=list)
+    nano_summary: str = ""
+    carry_forward: str = ""
+
+
+@dataclass(slots=True)
 class ResearchResponse:
     summary: str
     findings: list[str] = field(default_factory=list)
     follow_up_actions: list[str] = field(default_factory=list)
     role_plans: list[RolePlan] = field(default_factory=list)
     requires_human_review: bool = True
+    agent_pack: str = ""
+    memory_namespace: str = ""
+    memory_commit_mode: str = ""
+    workflow_mode: str = ""
+    workflow_stages: list[str] = field(default_factory=list)
+    nano_summary: str = ""
+    bundle: InvestigationBundle | None = None
 
 
 @dataclass(slots=True)
@@ -76,6 +98,13 @@ class OrchestrationHistoryEntry:
     findings: list[str] = field(default_factory=list)
     artifact_count: int = 0
     requires_human_review: bool = True
+    agent_pack: str = ""
+    memory_namespace: str = ""
+    memory_commit_mode: str = ""
+    workflow_mode: str = ""
+    bundle_label: str = ""
+    bundle_status: str = ""
+    nano_summary: str = ""
     detail_id: str = ""
 
 
@@ -94,6 +123,13 @@ class OrchestrationArtifactBundle:
     follow_up_actions: list[str] = field(default_factory=list)
     role_plans: list[RolePlan] = field(default_factory=list)
     requires_human_review: bool = True
+    agent_pack: str = ""
+    memory_namespace: str = ""
+    memory_commit_mode: str = ""
+    workflow_mode: str = ""
+    workflow_stages: list[str] = field(default_factory=list)
+    nano_summary: str = ""
+    bundle: InvestigationBundle | None = None
 
 
 @dataclass(slots=True)

@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Message } from "@/lib/types";
+import { estimateTextBlockHeight } from "@/lib/pretextSpike";
+import { useChatStore } from "@/lib/store";
+import { extractTextContent } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 
 /**
@@ -15,18 +18,25 @@ const ESTIMATED_HEIGHT = {
   tall: 320,   // code blocks / long replies
 };
 
-function estimateMessageHeight(message: Message): number {
-  const text =
-    typeof message.content === "string"
-      ? message.content
-      : message.content
-          .filter((b): b is { type: "text"; text: string } => b.type === "text")
-          .map((b) => b.text)
-          .join("");
+function estimateMessageHeight(message: Message, availableWidth: number, usePretext: boolean): number {
+  const text = extractTextContent(message.content);
 
-  if (text.length < 100) return ESTIMATED_HEIGHT.short;
-  if (text.length < 500 || text.includes("```")) return ESTIMATED_HEIGHT.medium;
-  return ESTIMATED_HEIGHT.tall;
+  if (!usePretext || !text.trim()) {
+    if (text.length < 100) return ESTIMATED_HEIGHT.short;
+    if (text.length < 500 || text.includes("```")) return ESTIMATED_HEIGHT.medium;
+    return ESTIMATED_HEIGHT.tall;
+  }
+
+  const bubbleWidth = Math.min(672, Math.max(220, availableWidth - (message.role === "user" ? 132 : 148)));
+  const baseHeight = estimateTextBlockHeight(text, Math.max(180, bubbleWidth - 32), {
+    lineHeight: message.role === "assistant" ? 22 : 20,
+    paddingY: 20,
+    chromeHeight: message.role === "assistant" ? 22 : 0,
+    whiteSpace: "pre-wrap",
+  });
+  const codeBlockPenalty = text.includes("```") ? 120 : 0;
+  const streamingPenalty = message.status === "streaming" ? 18 : 0;
+  return Math.max(ESTIMATED_HEIGHT.short, Math.min(1600, Math.ceil(baseHeight + codeBlockPenalty + streamingPenalty)));
 }
 
 interface VirtualMessageListProps {
@@ -39,11 +49,31 @@ interface VirtualMessageListProps {
 export function VirtualMessageList({ messages, isStreaming }: VirtualMessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+  const pretextEnabled = useChatStore((state) => state.settings.integrations.pretextEnabled);
+  const [availableWidth, setAvailableWidth] = useState(720);
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateWidth = () => setAvailableWidth(Math.max(320, element.clientWidth));
+    updateWidth();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => estimateMessageHeight(messages[index]),
+    estimateSize: (index) => estimateMessageHeight(messages[index], availableWidth, pretextEnabled),
     overscan: 5,
   });
 

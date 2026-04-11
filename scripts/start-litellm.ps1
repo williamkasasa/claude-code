@@ -7,9 +7,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Test-CommandAvailable {
-  param([string]$Name)
-  return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+function Resolve-LiteLLMCommand {
+  param([string]$RepoRoot)
+
+  $repoVenvCommand = Join-Path $RepoRoot ".venv/Scripts/litellm.exe"
+  if (Test-Path $repoVenvCommand) {
+    return $repoVenvCommand
+  }
+
+  $fromPath = Get-Command litellm -ErrorAction SilentlyContinue
+  if ($fromPath) {
+    return $fromPath.Source
+  }
+
+  return $null
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -20,11 +31,12 @@ if (-not (Test-Path $resolvedConfig)) {
   throw "LiteLLM config not found at $resolvedConfig"
 }
 
-if (-not (Test-CommandAvailable litellm)) {
-  throw "litellm is not available on PATH. Install it with: pip install 'litellm[proxy]'"
+$litellmCommand = Resolve-LiteLLMCommand -RepoRoot $repoRoot
+if (-not $litellmCommand) {
+  throw "litellm is not available in the repo .venv or on PATH. Install it with: pip install 'litellm[proxy]'"
 }
 
-$command = "`$env:LITELLM_MASTER_KEY='$MasterKey'; litellm --config '$resolvedConfig' --host 127.0.0.1 --port $Port"
+$command = "`$env:LITELLM_MASTER_KEY='$MasterKey'; & '$litellmCommand' --config '$resolvedConfig' --host 127.0.0.1 --port $Port"
 
 if ($Inline) {
   Write-Host $command

@@ -30,7 +30,16 @@ class BackendContractTests(unittest.TestCase):
             provider=ChatProvider.OLLAMA,
             model="qwen2.5-coder:7b",
             roles=[OrchestratorRole.PLC_ANALYST, OrchestratorRole.SAFETY],
-            context=ResearchContext(workspace_root="D:/workspace"),
+            context=ResearchContext(
+                workspace_root="D:/workspace",
+                metadata={
+                    "agent_pack": "nano-chat",
+                    "memory_namespace": "investigation-bundle",
+                    "memory_commit_mode": "session-handoff",
+                    "workflow_mode": "fast-pass",
+                    "workflow_stages": ["triage", "nano-brief", "handoff"],
+                },
+            ),
         )
 
         assignments = build_role_assignments(request)
@@ -45,6 +54,12 @@ class BackendContractTests(unittest.TestCase):
         self.assertEqual(len(response.role_plans), 2)
         self.assertGreaterEqual(len(response.role_plans[0].artifacts), 1)
         self.assertEqual(response.role_plans[0].artifacts[0].review_gate, "human-review")
+        self.assertEqual(response.agent_pack, "nano-chat")
+        self.assertEqual(response.workflow_mode, "fast-pass")
+        self.assertEqual(response.workflow_stages[1], "nano-brief")
+        self.assertIsNotNone(response.bundle)
+        self.assertIn("Nano brief", response.bundle.report_sections)
+        self.assertIn("Next focus", response.nano_summary)
 
     def test_mes_registry_is_managed(self) -> None:
         datasets = list_mes_datasets()

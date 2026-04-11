@@ -10,6 +10,7 @@ import { ApiSettings } from "./ApiSettings";
 import { PermissionSettings } from "./PermissionSettings";
 import { McpSettings } from "./McpSettings";
 import { KeyboardSettings } from "./KeyboardSettings";
+import { IntegrationSettings } from "./IntegrationSettings";
 import { DataSettings } from "./DataSettings";
 
 function renderSection(section: SettingsSection) {
@@ -26,6 +27,8 @@ function renderSection(section: SettingsSection) {
       return <McpSettings />;
     case "keyboard":
       return <KeyboardSettings />;
+    case "integrations":
+      return <IntegrationSettings />;
     case "data":
       return <DataSettings />;
   }

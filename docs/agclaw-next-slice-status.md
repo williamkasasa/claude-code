@@ -9,18 +9,27 @@ Implemented now:
 - hosted providers in the web shell and backend for `github-models` and `openai`
 - existing providers retained for `anthropic`, `openai-compatible`, `ollama`, and `vllm`
 - visible buddy widget, helper suggestions, and full panel in the web shell
-- `pretext`-style measurement adapter used only for:
+- direct `@chenglou/pretext` dependency in the web shell through the clean-room measurement adapter in `web/lib/pretextSpike.ts`, now used for:
   - chat input height estimation
   - annotation/comment preview measurement
   - file-viewer path truncation
+  - virtualized chat message sizing
 - guarded live vision validation path and runbook for a real multimodal endpoint
 - Playwright e2e coverage for provider switching and buddy interaction
+- routed promptfoo multimodal gate passes locally again on the split-model Ollama runtime at `127.0.0.1:11500`
+- `promptfoo` upgraded in-repo to `^0.121.3` so the caption pack no longer fails on the stale CLI path
+- local web-shell UI audit hook added through `impeccable` so frontend review can be run on demand without changing runtime dependencies
+- preset Impeccable audit commands added for AG-Claw chat-shell, buddy, settings, and common-page surfaces
+- concrete checked-in spike docs added for `agency-agents`, `OpenViking`, and `MiroFish`
+- in-app integration settings for agent packs, memory namespaces, commit modes, and workflow modes
+- research orchestration route resolution, persisted investigation bundles, and bundle export/share actions
+- `nano-chat` pack, nano briefs, and carry-forward summaries available in the web shell and orchestration payloads
 
 Still pending or environment-dependent:
 
-- routed promptfoo multimodal gate rerun once the split-model Ollama runtime on `127.0.0.1:11500` is available again
 - broader e2e expansion beyond the focused provider, buddy, and HMI review coverage
 - hosted multimodal validation once a stable credential path is available for this machine
+- workstation Node remains on `v22.21.0`, so latest `promptfoo` prints an engine warning until Node is moved to `>=22.22.0`
 
 ## Model Catalog Guidance
 
@@ -60,13 +69,14 @@ Buddy remains advisory-only and UI-local in this slice.
 
 ## Pretext Fit
 
-`pretext` fits only as a narrow frontend measurement spike here.
+`pretext` fits only as a narrow frontend measurement dependency here.
 
 Keep it for:
 
 - reducing repeated DOM measurement in chat input sizing
 - comment preview sizing and truncation
 - file title/path truncation heuristics
+- virtualized chat message sizing
 
 Do not use it for:
 
@@ -87,9 +97,37 @@ Reason:
 
 If you want a research note, keep `heretic` reference-only and document findings separately instead of integrating it into the clean-room runtime.
 
+## Reference Mapping
+
+Use these external repos as follows for this slice:
+
+- `promptfoo/promptfoo`: active dependency and debugging reference for the eval harness
+- `pbakaus/impeccable`: usable local audit tool for the web shell through `bun run audit:web:*` presets or `npm run audit:*` in `web`
+- `volcengine/OpenViking`: upstream reference only, but its ideas are now mapped into AG-Claw memory namespaces, commit modes, and investigation bundles
+- `msitarzewski/agency-agents`: upstream reference only, but its ideas are now mapped into AG-Claw agent packs and role metadata
+- `karpathy/nanochat`: upstream reference only, but its ideas are now mapped into the local `nano-chat` pack and nano-brief flow
+- `666ghj/MiroFish`: upstream reference only, but its ideas are now mapped into local staged workflow modes and orchestration stages
+- `p-e-w/heretic`: intentionally excluded from implementation
+
 ## How To Run It
 
 Real clean-room backend plus web shell:
+
+Recommended one-command local stack:
+
+```powershell
+Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
+powershell -ExecutionPolicy Bypass -File .\scripts\start-agclaw-local.ps1 -EnableRoutedVision -StartLiteLLM
+```
+
+First-time local setup with routed multimodal validation:
+
+```powershell
+Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
+powershell -ExecutionPolicy Bypass -File .\scripts\start-agclaw-local.ps1 -EnableRoutedVision -PullVisionModels -StartLiteLLM -RunVisionGate
+```
+
+Manual backend plus web shell:
 
 ```powershell
 Set-Location "d:\OneDrive - AG SOLUTION\claude-code"
@@ -115,6 +153,24 @@ node .\scripts\start-e2e-server.mjs
 ```
 
 Then open `http://127.0.0.1:3000` for dev mode or `http://127.0.0.1:3100` for the mock-backed e2e server.
+
+Optional local audit helpers:
+
+- `bun run promptfoo:latest`
+- `bun run audit:web-ui -- --help`
+- `bun run audit:web:common`
+- `bun run audit:web:chat-shell`
+- `bun run audit:web:buddy`
+- `bun run audit:web:settings`
+- `bun run audit:web:url:home`
+
+Both wrappers are non-interactive: the promptfoo check uses `npm view promptfoo version` to avoid local config and engine-warning noise, while the live URL audit uses a repo-owned Puppeteer wrapper around Impeccable's browser detector so it works on Windows with a local Chrome or Edge install.
+
+Checked-in reference spikes:
+
+- `docs/agclaw-agency-agents-spike.md`
+- `docs/agclaw-openviking-spike.md`
+- `docs/agclaw-mirofish-spike.md`
 
 Validated merged-state checks on this workstation:
 

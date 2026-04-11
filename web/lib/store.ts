@@ -55,6 +55,15 @@ const DEFAULT_SETTINGS: AppSettings = {
     "command-palette": "Ctrl+K",
   },
 
+  // Integrations
+  integrations: {
+    pretextEnabled: true,
+    activeAgentPack: "operator-swarm",
+    memoryNamespace: "operator-session",
+    memoryCommitMode: "manual-review",
+    workflowMode: "staged-report",
+  },
+
   // Privacy
   telemetryEnabled: false,
 };
@@ -98,6 +107,23 @@ function normalizeSettings(settings: Partial<AppSettings> | undefined): AppSetti
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
+    permissions: {
+      ...DEFAULT_SETTINGS.permissions,
+      ...settings?.permissions,
+      autoApprove: {
+        ...DEFAULT_SETTINGS.permissions.autoApprove,
+        ...settings?.permissions?.autoApprove,
+      },
+      restrictedDirs: settings?.permissions?.restrictedDirs ?? DEFAULT_SETTINGS.permissions.restrictedDirs,
+    },
+    keybindings: {
+      ...DEFAULT_SETTINGS.keybindings,
+      ...settings?.keybindings,
+    },
+    integrations: {
+      ...DEFAULT_SETTINGS.integrations,
+      ...settings?.integrations,
+    },
     provider,
     apiUrl: settings?.apiUrl?.trim() || DEFAULT_PROVIDER_URLS[provider],
     model: settings?.model?.trim() || getDefaultModelForProvider(provider),
@@ -448,6 +474,7 @@ export const useChatStore = create<ChatState>()(
           },
           permissions: { permissions: DEFAULT_SETTINGS.permissions },
           keybindings: { keybindings: DEFAULT_SETTINGS.keybindings },
+          integrations: { integrations: DEFAULT_SETTINGS.integrations },
           data: { telemetryEnabled: DEFAULT_SETTINGS.telemetryEnabled },
         };
         const defaults = sectionDefaults[section];

@@ -116,6 +116,26 @@ export type ChatProvider =
   | "ollama"
   | "vllm";
 
+export type AgentPackId = "operator-swarm" | "screen-review" | "promptfoo-audit" | "nano-chat";
+
+export type MemoryNamespaceId =
+  | "operator-session"
+  | "task-memory"
+  | "plant-reference"
+  | "investigation-bundle";
+
+export type MemoryCommitMode = "manual-review" | "session-handoff" | "investigation-summary";
+
+export type WorkflowMode = "staged-report" | "fast-pass" | "review-heavy";
+
+export interface IntegrationSettings {
+  pretextEnabled: boolean;
+  activeAgentPack: AgentPackId;
+  memoryNamespace: MemoryNamespaceId;
+  memoryCommitMode: MemoryCommitMode;
+  workflowMode: WorkflowMode;
+}
+
 export interface AppSettings {
   // General
   theme: "light" | "dark" | "system";
@@ -149,8 +169,84 @@ export interface AppSettings {
   // Keybindings
   keybindings: Record<string, string>;
 
+  // Integrations
+  integrations: IntegrationSettings;
+
   // Privacy
   telemetryEnabled: boolean;
+}
+
+export interface OrchestrationRoleArtifact {
+  kind: string;
+  title: string;
+  body: string;
+  review_gate: string;
+}
+
+export interface OrchestrationRolePlan {
+  role: string;
+  objective: string;
+  findings: string[];
+  next_actions: string[];
+  artifacts: OrchestrationRoleArtifact[];
+}
+
+export interface InvestigationBundlePayload {
+  label: string;
+  status: string;
+  agent_pack: string;
+  memory_namespace: string;
+  memory_commit_mode: string;
+  workflow_mode: string;
+  workflow_stages: string[];
+  report_sections: string[];
+  artifact_titles: string[];
+  nano_summary: string;
+  carry_forward: string;
+}
+
+export interface ResearchResponsePayload {
+  summary: string;
+  findings: string[];
+  follow_up_actions: string[];
+  role_plans: OrchestrationRolePlan[];
+  requires_human_review: boolean;
+  agent_pack: string;
+  memory_namespace: string;
+  memory_commit_mode: string;
+  workflow_mode: string;
+  workflow_stages: string[];
+  nano_summary: string;
+  bundle: InvestigationBundlePayload | null;
+}
+
+export interface OrchestrationHistoryItem {
+  id: string;
+  detail_id: string;
+  created_at: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  roles: string[];
+  summary: string;
+  artifact_count: number;
+  requires_human_review: boolean;
+  agent_pack: string;
+  memory_namespace: string;
+  memory_commit_mode: string;
+  workflow_mode: string;
+  bundle_label: string;
+  bundle_status: string;
+  nano_summary: string;
+}
+
+export interface OrchestrationHistoryDetail extends ResearchResponsePayload {
+  id: string;
+  created_at: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  roles: string[];
 }
 
 export interface ConversationSummary {

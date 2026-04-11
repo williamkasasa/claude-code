@@ -2,25 +2,20 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, BookOpenText, Eye, FlaskConical, Wand2, X } from "lucide-react";
+import { Activity, BookOpenText, Copy, Download, ExternalLink, Eye, FlaskConical, Route, Share2, Wand2, X } from "lucide-react";
 import { useChatStore } from "@/lib/store";
+import { getAgentPack, getMemoryNamespace, getWorkflowMode, getWorkflowStages } from "@/lib/integrations";
 import { useNotificationStore } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
+import type {
+  InvestigationBundlePayload,
+  OrchestrationHistoryDetail,
+  OrchestrationHistoryItem,
+  ResearchResponsePayload,
+} from "@/lib/types";
+import { buildBundleConversation, buildBundleFileStem, resolveResearchRoute, type BundleArtifactSource } from "@/lib/researchArtifacts";
 
 type ResearchSection = "orchestrate" | "retrieve" | "log-slim" | "screen-review";
-
-type RolePlan = {
-  role: string;
-  objective: string;
-  findings: string[];
-  next_actions: string[];
-  artifacts: Array<{
-    kind: string;
-    title: string;
-    body: string;
-    review_gate: string;
-  }>;
-};
 
 const SECTION_META: Record<ResearchSection, { label: string; icon: React.ElementType }> = {
   orchestrate: { label: "Orchestrate", icon: Wand2 },
@@ -39,47 +34,82 @@ const DEFAULT_LOG_SAMPLE = [
 
 const DEFAULT_SCREEN_NOTES = "Alarm banner visible. Manual mode lit. Batch 42 recipe screen open with release hold indicator.";
 
+function BundlePanel({
+  bundle,
+  title,
+  actions,
+  shareUrl,
+}: {
+  bundle: InvestigationBundlePayload;
+  title: string;
+  actions?: React.ReactNode;
+  shareUrl?: string | null;
+}) {
+  return (
+    <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-surface-500">{title}</div>
+          <div className="mt-1 font-medium text-surface-100">{bundle.label}</div>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {actions}
+          <span className="rounded-full border border-emerald-800/70 bg-emerald-950/40 px-2 py-0.5 text-[11px] uppercase tracking-wide text-emerald-300">
+            {bundle.status.replace(/-/g, " ")}
+          </span>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-surface-400">
+        <span className="rounded-full border border-surface-700 px-2 py-0.5">{bundle.agent_pack}</span>
+        <span className="rounded-full border border-surface-700 px-2 py-0.5">{bundle.memory_namespace}</span>
+        <span className="rounded-full border border-surface-700 px-2 py-0.5">{bundle.workflow_mode}</span>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <div className="text-xs uppercase tracking-wide text-surface-500">Nano brief</div>
+          <p className="mt-2 text-surface-300">{bundle.nano_summary}</p>
+          <div className="mt-4 text-xs uppercase tracking-wide text-surface-500">Report sections</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {bundle.report_sections.map((section) => (
+              <span key={section} className="rounded-full border border-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                {section}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wide text-surface-500">Artifact digest</div>
+          <ul className="mt-2 space-y-2 text-surface-300">
+            {bundle.artifact_titles.slice(0, 6).map((title) => (
+              <li key={title}>- {title}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-surface-500">{bundle.carry_forward}</p>
+          {shareUrl && (
+            <div className="mt-3 rounded-md border border-surface-800 bg-surface-950/80 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-surface-500">Bundle share URL</div>
+              <div className="mt-2 break-all text-xs text-surface-300">{shareUrl}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ResearchWorkbench() {
-  const { researchOpen, closeResearch } = useChatStore();
+  const { researchOpen, closeResearch, settings } = useChatStore();
   const addNotification = useNotificationStore((state) => state.addNotification);
+  const addToast = useNotificationStore((state) => state.addToast);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const [activeSection, setActiveSection] = useState<ResearchSection>("orchestrate");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bundleShareUrls, setBundleShareUrls] = useState<Record<string, string>>({});
 
   const [orchestratePrompt, setOrchestratePrompt] = useState("Review the MES release flow for operator approvals and genealogy capture.");
-  const [orchestrateResponse, setOrchestrateResponse] = useState<null | {
-    summary: string;
-    findings: string[];
-    follow_up_actions: string[];
-    role_plans: RolePlan[];
-  }>(null);
-  const [orchestrationHistory, setOrchestrationHistory] = useState<
-    Array<{
-      id: string;
-      detail_id: string;
-      created_at: string;
-      prompt: string;
-      provider: string;
-      model: string;
-      roles: string[];
-      summary: string;
-      artifact_count: number;
-      requires_human_review: boolean;
-    }>
-  >([]);
-  const [selectedHistoryDetail, setSelectedHistoryDetail] = useState<null | {
-    id: string;
-    created_at: string;
-    prompt: string;
-    provider: string;
-    model: string;
-    roles: string[];
-    summary: string;
-    findings: string[];
-    follow_up_actions: string[];
-    role_plans: RolePlan[];
-    requires_human_review: boolean;
-  }>(null);
+  const [orchestrateResponse, setOrchestrateResponse] = useState<ResearchResponsePayload | null>(null);
+  const [orchestrationHistory, setOrchestrationHistory] = useState<OrchestrationHistoryItem[]>([]);
+  const [selectedHistoryDetail, setSelectedHistoryDetail] = useState<OrchestrationHistoryDetail | null>(null);
 
   const [retrieveQuery, setRetrieveQuery] = useState("material genealogy traceability");
   const [datasetCatalog, setDatasetCatalog] = useState<Array<{
@@ -116,6 +146,170 @@ export function ResearchWorkbench() {
     risks: string[];
     recommended_follow_up: string[];
   }>(null);
+
+  const activePack = useMemo(() => getAgentPack(settings.integrations.activeAgentPack), [settings.integrations.activeAgentPack]);
+  const activeNamespace = useMemo(
+    () => getMemoryNamespace(settings.integrations.memoryNamespace),
+    [settings.integrations.memoryNamespace]
+  );
+  const workflowMode = useMemo(() => getWorkflowMode(settings.integrations.workflowMode), [settings.integrations.workflowMode]);
+  const workflowStages = useMemo(() => getWorkflowStages(settings.integrations.workflowMode), [settings.integrations.workflowMode]);
+  const resolvedRoute = useMemo(() => resolveResearchRoute(settings), [settings]);
+  const recentBundles = useMemo(
+    () => orchestrationHistory.filter((item) => Boolean(item.bundle_label)),
+    [orchestrationHistory]
+  );
+
+  const currentBundleSource = useMemo<BundleArtifactSource | null>(() => {
+    if (!orchestrateResponse?.bundle) {
+      return null;
+    }
+    return {
+      ...orchestrateResponse,
+      prompt: orchestratePrompt,
+      createdAt: new Date().toISOString(),
+      provider: resolvedRoute.provider,
+      model: resolvedRoute.model,
+    };
+  }, [orchestratePrompt, orchestrateResponse, resolvedRoute.model, resolvedRoute.provider]);
+
+  const persistedBundleSource = useMemo<BundleArtifactSource | null>(() => {
+    if (!selectedHistoryDetail?.bundle) {
+      return null;
+    }
+    return {
+      ...selectedHistoryDetail,
+      prompt: selectedHistoryDetail.prompt,
+      createdAt: selectedHistoryDetail.created_at,
+      provider: selectedHistoryDetail.provider,
+    };
+  }, [selectedHistoryDetail]);
+
+  const exportBundle = useCallback(async (source: BundleArtifactSource, format: "json" | "markdown") => {
+    const conversation = buildBundleConversation(source);
+    const response = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversation,
+        options: {
+          format,
+          includeToolUse: false,
+          includeThinking: false,
+          includeTimestamps: true,
+          includeFileContents: false,
+        },
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const blob = await response.blob();
+    const fileStem = buildBundleFileStem(source);
+    const extension = format === "markdown" ? "md" : "json";
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileStem}.${extension}`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const shareBundle = useCallback(async (shareKey: string, source: BundleArtifactSource) => {
+    const conversation = buildBundleConversation(source);
+    const response = await fetch("/api/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversation,
+        visibility: "unlisted",
+        expiry: "24h",
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    const payload = await response.json();
+    setBundleShareUrls((current) => ({ ...current, [shareKey]: payload.url }));
+    addToast({
+      variant: "success",
+      title: "Bundle share created",
+      description: "A read-only link for this investigation bundle is ready.",
+      duration: 4000,
+    });
+  }, [addToast]);
+
+  const copyShareUrl = useCallback(async (shareKey: string) => {
+    const shareUrl = bundleShareUrls[shareKey];
+    if (!shareUrl) {
+      return;
+    }
+    await navigator.clipboard.writeText(shareUrl);
+    addToast({
+      variant: "success",
+      title: "Copied bundle link",
+      duration: 2500,
+    });
+  }, [addToast, bundleShareUrls]);
+
+  const renderBundleActions = useCallback((shareKey: string, source: BundleArtifactSource | null) => {
+    if (!source?.bundle) {
+      return null;
+    }
+    const shareUrl = bundleShareUrls[shareKey] ?? null;
+    return {
+      shareUrl,
+      actions: (
+        <>
+          <button
+            type="button"
+            onClick={() => void exportBundle(source, "json")}
+            className="inline-flex items-center gap-1 rounded-md border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            JSON
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportBundle(source, "markdown")}
+            className="inline-flex items-center gap-1 rounded-md border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            Markdown
+          </button>
+          <button
+            type="button"
+            onClick={() => void shareBundle(shareKey, source)}
+            className="inline-flex items-center gap-1 rounded-md border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+          >
+            <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+            Share bundle
+          </button>
+          {shareUrl && (
+            <>
+              <button
+                type="button"
+                onClick={() => void copyShareUrl(shareKey)}
+                className="inline-flex items-center gap-1 rounded-md border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+              >
+                <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                Copy link
+              </button>
+              <a
+                href={shareUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-md border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Open share
+              </a>
+            </>
+          )}
+        </>
+      ),
+    };
+  }, [bundleShareUrls, copyShareUrl, exportBundle, shareBundle]);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -202,6 +396,49 @@ export function ResearchWorkbench() {
     if (activeSection === "orchestrate") {
       return (
         <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+            <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+              <div className="text-xs uppercase tracking-wide text-surface-500">Active pack</div>
+              <div className="mt-1 font-medium text-surface-100">{activePack.label}</div>
+              <p className="mt-2 text-surface-400">{activePack.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activePack.roles.map((role) => (
+                  <span key={role.id} className="rounded-full border border-surface-700 px-2 py-0.5 text-xs text-surface-400">
+                    {role.label}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 text-xs uppercase tracking-wide text-surface-500">Memory namespace</div>
+              <p className="mt-1 text-surface-300">
+                {activeNamespace.label}: {activeNamespace.commitModes[settings.integrations.memoryCommitMode]}
+              </p>
+              <div className="mt-4 rounded-md border border-surface-800 bg-surface-950/80 p-3">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-surface-500">
+                  <Route className="h-3.5 w-3.5" aria-hidden="true" />
+                  Resolved orchestration route
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-surface-400">
+                  <span className="rounded-full border border-surface-700 px-2 py-0.5">{resolvedRoute.provider}</span>
+                  <span className="rounded-full border border-surface-700 px-2 py-0.5">{resolvedRoute.model}</span>
+                </div>
+                <p className="mt-2 text-surface-400">{resolvedRoute.rationale}</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+              <div className="text-xs uppercase tracking-wide text-surface-500">Workflow mode</div>
+              <div className="mt-1 font-medium text-surface-100">{workflowMode.label}</div>
+              <p className="mt-2 text-surface-400">{workflowMode.summary}</p>
+              <div className="mt-3 space-y-2">
+                {workflowStages.map((stage) => (
+                  <div key={stage.id} className="rounded-md border border-surface-800 bg-surface-950/80 p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-surface-500">{stage.order}</div>
+                    <div className="mt-1 font-medium text-surface-200">{stage.label}</div>
+                    <p className="mt-1 text-surface-400">{stage.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <div>
             <label htmlFor="research-orchestrate-prompt" className="mb-2 block text-sm font-medium text-surface-200">Research prompt</label>
             <textarea
@@ -221,12 +458,19 @@ export function ResearchWorkbench() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     prompt: orchestratePrompt,
-                    provider: "ollama",
-                    model: "qwen2.5-coder:7b",
-                    roles: ["plc-analyst", "devops", "safety"],
+                    provider: resolvedRoute.provider,
+                    model: resolvedRoute.model,
+                    roles: activePack.roles.map((role) => role.id),
                     context: {
                       project_name: "ag-claw",
                       safety_mode: "advisory-only",
+                      agent_pack: activePack.id,
+                      memory_namespace: activeNamespace.id,
+                      memory_commit_mode: settings.integrations.memoryCommitMode,
+                      workflow_mode: workflowMode.id,
+                      workflow_stages: workflowStages.map((stage) => stage.id),
+                      routing_lane: resolvedRoute.laneLabel,
+                      routing_rationale: resolvedRoute.rationale,
                     },
                   }),
                 });
@@ -239,7 +483,7 @@ export function ResearchWorkbench() {
                 await loadHistory();
                 addNotification({
                   title: "Research orchestration complete",
-                  description: "Swarm role guidance is ready for review.",
+                  description: `${activePack.label} guidance is ready for review.`,
                   category: "activity",
                 });
               } catch (error) {
@@ -262,12 +506,28 @@ export function ResearchWorkbench() {
             <div className="space-y-4">
               <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
                 <div className="font-medium text-surface-100">{orchestrateResponse.summary}</div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-surface-400">
+                  <span className="rounded-full border border-surface-700 px-2 py-0.5">{orchestrateResponse.agent_pack}</span>
+                  <span className="rounded-full border border-surface-700 px-2 py-0.5">{orchestrateResponse.memory_namespace}</span>
+                  <span className="rounded-full border border-surface-700 px-2 py-0.5">{orchestrateResponse.workflow_mode}</span>
+                </div>
                 <ul className="mt-3 space-y-2 text-surface-300">
                   {orchestrateResponse.findings.map((finding) => (
                     <li key={finding}>- {finding}</li>
                   ))}
                 </ul>
               </div>
+              {orchestrateResponse.bundle && (() => {
+                const bundleActions = renderBundleActions("current", currentBundleSource);
+                return (
+                  <BundlePanel
+                    bundle={orchestrateResponse.bundle}
+                    title="Current investigation bundle"
+                    actions={bundleActions?.actions}
+                    shareUrl={bundleActions?.shareUrl}
+                  />
+                );
+              })()}
               <div className="grid gap-4 lg:grid-cols-3">
                 {orchestrateResponse.role_plans.map((plan) => (
                   <div key={plan.role} className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
@@ -328,11 +588,44 @@ export function ResearchWorkbench() {
                     </div>
                     <div className="mt-2 font-medium text-surface-200">{item.summary}</div>
                     <p className="mt-1 text-surface-400">{item.prompt}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-surface-400">
+                      <span className="rounded-full border border-surface-700 px-2 py-0.5">{item.agent_pack}</span>
+                      <span className="rounded-full border border-surface-700 px-2 py-0.5">{item.workflow_mode}</span>
+                      {item.bundle_label && (
+                        <span className="rounded-full border border-emerald-800/70 px-2 py-0.5 text-emerald-300">
+                          {item.bundle_label}
+                        </span>
+                      )}
+                    </div>
+                    {item.nano_summary && <p className="mt-2 text-xs text-surface-500">{item.nano_summary}</p>}
                   </button>
                 ))
               )}
             </div>
           </div>
+          {recentBundles.length > 0 && (
+            <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
+              <div className="mb-3 text-xs uppercase tracking-wide text-surface-500">Recent investigation bundles</div>
+              <div className="space-y-3">
+                {recentBundles.map((item) => (
+                  <button
+                    key={`bundle-${item.id}`}
+                    type="button"
+                    onClick={() => void loadHistoryDetail(item.detail_id || item.id)}
+                    className="w-full rounded-md border border-surface-800 bg-surface-950/80 p-3 text-left transition-colors hover:border-surface-700"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                      <span>{item.bundle_label}</span>
+                      <span>{item.bundle_status.replace(/-/g, " ")}</span>
+                      <span>{item.memory_namespace}</span>
+                    </div>
+                    <div className="mt-2 font-medium text-surface-200">{item.summary}</div>
+                    <p className="mt-1 text-surface-500">{item.nano_summary}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {selectedHistoryDetail && (
             <div className="rounded-xl border border-surface-800 bg-surface-900/70 p-4 text-sm text-surface-200">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -352,6 +645,11 @@ export function ResearchWorkbench() {
                 <div>
                   <div className="text-xs uppercase tracking-wide text-surface-500">Prompt</div>
                   <p className="mt-2 text-surface-300">{selectedHistoryDetail.prompt}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-surface-400">
+                    <span className="rounded-full border border-surface-700 px-2 py-0.5">{selectedHistoryDetail.agent_pack}</span>
+                    <span className="rounded-full border border-surface-700 px-2 py-0.5">{selectedHistoryDetail.memory_namespace}</span>
+                    <span className="rounded-full border border-surface-700 px-2 py-0.5">{selectedHistoryDetail.workflow_mode}</span>
+                  </div>
                   <div className="mt-4 text-xs uppercase tracking-wide text-surface-500">Follow-up actions</div>
                   <ul className="mt-2 space-y-2 text-surface-300">
                     {selectedHistoryDetail.follow_up_actions.map((item) => (
@@ -368,6 +666,19 @@ export function ResearchWorkbench() {
                   </ul>
                 </div>
               </div>
+              {selectedHistoryDetail.bundle && (() => {
+                const bundleActions = renderBundleActions(`persisted-${selectedHistoryDetail.id}`, persistedBundleSource);
+                return (
+                  <div className="mt-4">
+                    <BundlePanel
+                      bundle={selectedHistoryDetail.bundle}
+                      title="Persisted investigation bundle"
+                      actions={bundleActions?.actions}
+                      shareUrl={bundleActions?.shareUrl}
+                    />
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -710,7 +1021,7 @@ export function ResearchWorkbench() {
         )}
       </div>
     );
-  }, [activeSection, addNotification, datasetCatalog, handleScreenFileChange, isSubmitting, loadHistory, loadHistoryDetail, logSlimResponse, logText, orchestrationHistory, orchestratePrompt, orchestrateResponse, preserveTokens, retrieveQuery, retrieveResponse, screenImageDataUrl, screenImageName, screenLabels, screenNotes, screenResponse, screenTitle, selectedDatasetIds, selectedHistoryDetail]);
+  }, [activeNamespace, activePack, activeSection, addNotification, currentBundleSource, datasetCatalog, handleScreenFileChange, isSubmitting, loadHistory, loadHistoryDetail, logSlimResponse, logText, orchestrationHistory, orchestratePrompt, orchestrateResponse, persistedBundleSource, preserveTokens, recentBundles, renderBundleActions, resolvedRoute, retrieveQuery, retrieveResponse, screenImageDataUrl, screenImageName, screenLabels, screenNotes, screenResponse, screenTitle, selectedDatasetIds, selectedHistoryDetail, settings.integrations.memoryCommitMode, workflowMode, workflowStages]);
 
   if (!researchOpen) {
     return null;

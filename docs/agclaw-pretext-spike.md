@@ -12,7 +12,7 @@ Targeted surfaces:
 
 ## Decision
 
-- `chenglou/pretext` remains a reference input, not a direct runtime dependency in this repo
+- `@chenglou/pretext` is now a direct runtime dependency in `web/`, but remains scoped to frontend-only measurement logic
 - the npm package named `pretext` is a different project and was intentionally rejected
 - the current shell uses a clean-room measurement adapter in `web/lib/pretextSpike.ts`
 
@@ -24,12 +24,13 @@ Keep the spike only if it reduces visible layout jitter or avoids obvious expens
 
 Implemented:
 
-- chat input uses estimated wrapped lines before autosize growth
+- chat input uses Pretext-backed wrapped-line estimation before autosize growth
 - annotation thread uses measured preview strings for tighter comment hover context
 - desktop file viewer uses measured path truncation for long workspace paths
+- virtualized chat rendering uses Pretext-backed text height estimation for message rows
 
 Current posture:
 
 - keep the isolated adapter because it is low risk and easy to remove
-- do not treat this as an adoption of the upstream repo
+- keep the dependency and logic isolated to the web shell instead of scattering direct measurement calls through components
 - do not expand this spike into backend or retrieval code

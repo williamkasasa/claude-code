@@ -9,9 +9,15 @@
     "lint": "next lint",
     "type-check": "next build --no-lint",
     "e2e": "playwright test",
-    "e2e:headed": "playwright test --headed"
+    "e2e:headed": "playwright test --headed",
+    "audit:ui": "impeccable",
+    "audit:chat-shell": "powershell -ExecutionPolicy Bypass -File ../scripts/run-impeccable-web-audit.ps1 -Preset chat-shell",
+    "audit:buddy": "powershell -ExecutionPolicy Bypass -File ../scripts/run-impeccable-web-audit.ps1 -Preset buddy",
+    "audit:settings": "powershell -ExecutionPolicy Bypass -File ../scripts/run-impeccable-web-audit.ps1 -Preset settings",
+    "audit:url:home": "node ./scripts/run-impeccable-url-audit.mjs http://127.0.0.1:3000/"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.5",
     "@radix-ui/react-collapsible": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
@@ -48,7 +54,9 @@
     "autoprefixer": "^10",
     "eslint": "^8",
     "eslint-config-next": "^14.2.0",
+    "impeccable": "^2.1.7",
     "postcss": "^8",
+    "puppeteer": "^24.40.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5"
   }

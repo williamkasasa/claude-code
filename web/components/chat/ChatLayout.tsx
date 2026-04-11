@@ -14,6 +14,7 @@ import { CollaborationProvider } from "@/components/collaboration/CollaborationP
 import { ResearchWorkbench } from "@/components/research/ResearchWorkbench";
 import { BuddyPanel } from "@/components/buddy/BuddyPanel";
 import { getBuddyProfile, getBuddySeed, getBuddySuggestions, type BuddyProfile } from "@/lib/buddy";
+import { getAgentPack, getMemoryNamespace } from "@/lib/integrations";
 
 const DEMO_USER = {
   id: "local-user",
@@ -46,6 +47,7 @@ export function ChatLayout() {
     createConversation,
     activeConversationId,
     buddyOpen,
+    settings,
     openBuddy,
     closeBuddy,
   } = useChatStore();
@@ -75,8 +77,12 @@ export function ChatLayout() {
   }, [activeConversation]);
 
   const buddySuggestions = useMemo(
-    () => getBuddySuggestions(buddyProfile, latestPrompt),
-    [buddyProfile, latestPrompt]
+    () =>
+      getBuddySuggestions(buddyProfile, latestPrompt, {
+        pack: getAgentPack(settings.integrations.activeAgentPack),
+        memoryNamespace: getMemoryNamespace(settings.integrations.memoryNamespace),
+      }),
+    [buddyProfile, latestPrompt, settings.integrations.activeAgentPack, settings.integrations.memoryNamespace]
   );
 
   return (

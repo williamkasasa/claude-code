@@ -8,6 +8,8 @@ npm install
 npm run gate
 ```
 
+If `promptfoo` warns that your local CLI is behind, run `npx promptfoo@latest` or reinstall dependencies in this directory. The repo now pins `promptfoo` at `^0.121.3`.
+
 To import governed sample assets from the allowlisted Hugging Face datasets:
 
 ```powershell
@@ -29,6 +31,15 @@ cd promptfoo
 npm install
 npm run build:hf-evals
 ```
+
+One-command local routed stack from the repo root:
+
+```powershell
+Set-Location (git rev-parse --show-toplevel)
+.\scripts\start-agclaw-local.ps1 -EnableRoutedVision -PullVisionModels -RunVisionGate
+```
+
+That launcher can also start LiteLLM for the same session by adding `-StartLiteLLM`.
 
 Run the suites against a real multimodal endpoint, for example local Ollama or LiteLLM in front of Ollama:
 
@@ -98,6 +109,10 @@ Validated local status on this workstation:
 - `gate:vision-screen-review`: backend HMI interpretation and advisory review behave well on `qwen2.5vl:7b`
 - `gate:vision-ocr`: passes on `gemma3:4b` via the same E-backed Ollama instance
 - `gate:vision-all`: passes when task-based routing is enabled so caption/HMI use `qwen2.5vl:7b` and OCR uses `gemma3:4b`
+
+Workstation note:
+
+- `promptfoo 0.121.3` emits an engine warning on Node `v22.21.0` because upstream prefers `>=22.22.0`, but the local multimodal gates still complete successfully on this machine.
 
 Caption pack note:
 

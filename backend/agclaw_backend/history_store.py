@@ -9,6 +9,7 @@ from threading import Lock
 from uuid import UUID, uuid4
 
 from .contracts import (
+    InvestigationBundle,
     OrchestrationArtifactBundle,
     OrchestrationHistoryEntry,
     ResearchRequest,
@@ -18,6 +19,10 @@ from .contracts import (
 )
 
 _LOCK = Lock()
+
+
+def _normalize_role_id(role: str) -> str:
+    return role.value if hasattr(role, "value") else str(role)
 
 
 def _history_path() -> Path:
@@ -73,16 +78,67 @@ def _deserialize_role_plan(payload: dict[str, object]) -> RolePlan:
     )
 
 
+def _serialize_bundle(bundle: InvestigationBundle | None) -> dict[str, object] | None:
+    if bundle is None:
+        return None
+    return {
+        "label": bundle.label,
+        "status": bundle.status,
+        "agent_pack": bundle.agent_pack,
+        "memory_namespace": bundle.memory_namespace,
+        "memory_commit_mode": bundle.memory_commit_mode,
+        "workflow_mode": bundle.workflow_mode,
+        "workflow_stages": list(bundle.workflow_stages),
+        "report_sections": list(bundle.report_sections),
+        "artifact_titles": list(bundle.artifact_titles),
+        "nano_summary": bundle.nano_summary,
+        "carry_forward": bundle.carry_forward,
+    }
+
+
+def _deserialize_bundle(payload: dict[str, object] | None) -> InvestigationBundle | None:
+    if not isinstance(payload, dict):
+        return None
+    return InvestigationBundle(
+        label=str(payload.get("label", "Investigation bundle")),
+        status=str(payload.get("status", "draft-review")),
+        agent_pack=str(payload.get("agent_pack", "")),
+        memory_namespace=str(payload.get("memory_namespace", "")),
+        memory_commit_mode=str(payload.get("memory_commit_mode", "")),
+        workflow_mode=str(payload.get("workflow_mode", "")),
+        workflow_stages=[str(item) for item in payload.get("workflow_stages", []) if isinstance(item, str)],
+        report_sections=[str(item) for item in payload.get("report_sections", []) if isinstance(item, str)],
+        artifact_titles=[str(item) for item in payload.get("artifact_titles", []) if isinstance(item, str)],
+        nano_summary=str(payload.get("nano_summary", "")),
+        carry_forward=str(payload.get("carry_forward", "")),
+    )
+
+
+def _metadata_string(metadata: dict[str, object], key: str, default: str = "") -> str:
+    value = metadata.get(key, default)
+    return value.strip() if isinstance(value, str) else str(value).strip()
+
+
+def _metadata_list(metadata: dict[str, object], key: str) -> list[str]:
+    value = metadata.get(key, [])
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
 def append_orchestration_history(request: ResearchRequest, response: ResearchResponse) -> OrchestrationHistoryEntry:
     record_id = str(uuid4())
     created_at = datetime.now(UTC).isoformat()
+    metadata = request.context.metadata if isinstance(request.context.metadata, dict) else {}
     detail = OrchestrationArtifactBundle(
         id=record_id,
         created_at=created_at,
         prompt=request.prompt,
         provider=request.provider.value,
         model=request.model,
-        roles=[role.value for role in request.roles],
+        roles=[_normalize_role_id(role) for role in request.roles],
         context={
             "workspace_root": request.context.workspace_root,
             "project_name": request.context.project_name,
@@ -95,6 +151,13 @@ def append_orchestration_history(request: ResearchRequest, response: ResearchRes
         follow_up_actions=list(response.follow_up_actions),
         role_plans=response.role_plans,
         requires_human_review=response.requires_human_review,
+        agent_pack=response.agent_pack or _metadata_string(metadata, "agent_pack"),
+        memory_namespace=response.memory_namespace or _metadata_string(metadata, "memory_namespace"),
+        memory_commit_mode=response.memory_commit_mode or _metadata_string(metadata, "memory_commit_mode"),
+        workflow_mode=response.workflow_mode or _metadata_string(metadata, "workflow_mode"),
+        workflow_stages=response.workflow_stages or _metadata_list(metadata, "workflow_stages"),
+        nano_summary=response.nano_summary,
+        bundle=response.bundle,
     )
     entry = OrchestrationHistoryEntry(
         id=record_id,
@@ -102,11 +165,18 @@ def append_orchestration_history(request: ResearchRequest, response: ResearchRes
         prompt=request.prompt,
         provider=request.provider.value,
         model=request.model,
-        roles=[role.value for role in request.roles],
+        roles=[_normalize_role_id(role) for role in request.roles],
         summary=response.summary,
         findings=response.findings,
         artifact_count=sum(len(plan.artifacts) for plan in response.role_plans),
         requires_human_review=response.requires_human_review,
+        agent_pack=detail.agent_pack,
+        memory_namespace=detail.memory_namespace,
+        memory_commit_mode=detail.memory_commit_mode,
+        workflow_mode=detail.workflow_mode,
+        bundle_label=detail.bundle.label if detail.bundle else "",
+        bundle_status=detail.bundle.status if detail.bundle else "",
+        nano_summary=response.nano_summary,
         detail_id=record_id,
     )
 
@@ -129,6 +199,13 @@ def append_orchestration_history(request: ResearchRequest, response: ResearchRes
         "follow_up_actions": detail.follow_up_actions,
         "role_plans": [_serialize_role_plan(plan) for plan in detail.role_plans],
         "requires_human_review": detail.requires_human_review,
+        "agent_pack": detail.agent_pack,
+        "memory_namespace": detail.memory_namespace,
+        "memory_commit_mode": detail.memory_commit_mode,
+        "workflow_mode": detail.workflow_mode,
+        "workflow_stages": detail.workflow_stages,
+        "nano_summary": detail.nano_summary,
+        "bundle": _serialize_bundle(detail.bundle),
     }
 
     artifact_path = artifact_dir / f"{record_id}.json"
@@ -194,4 +271,11 @@ def get_orchestration_detail(detail_id: str) -> OrchestrationArtifactBundle | No
             if isinstance(item, dict)
         ],
         requires_human_review=bool(payload.get("requires_human_review", True)),
+        agent_pack=str(payload.get("agent_pack", "")),
+        memory_namespace=str(payload.get("memory_namespace", "")),
+        memory_commit_mode=str(payload.get("memory_commit_mode", "")),
+        workflow_mode=str(payload.get("workflow_mode", "")),
+        workflow_stages=[str(item) for item in payload.get("workflow_stages", []) if isinstance(item, str)],
+        nano_summary=str(payload.get("nano_summary", "")),
+        bundle=_deserialize_bundle(payload.get("bundle") if isinstance(payload.get("bundle"), dict) else None),
     )

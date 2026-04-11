@@ -1,6 +1,8 @@
 export type BuddyRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type BuddyStatName = "debugging" | "patience" | "traceability" | "safety" | "throughput";
 
+import type { AgentPackDefinition, MemoryNamespaceDefinition } from "./integrations";
+
 export interface BuddyProfile {
   seed: string;
   rarity: BuddyRarity;
@@ -15,6 +17,11 @@ export interface BuddySuggestion {
   id: string;
   label: string;
   prompt: string;
+}
+
+interface BuddyStrategy {
+  pack?: AgentPackDefinition;
+  memoryNamespace?: MemoryNamespaceDefinition;
 }
 
 const RARITY_WEIGHTS: Array<[BuddyRarity, number]> = [
@@ -129,29 +136,33 @@ export function getBuddyStatSummary(profile: BuddyProfile): string {
   return `${topStat[0]} ${topStat[1]}`;
 }
 
-export function getBuddyTake(profile: BuddyProfile, latestPrompt: string): string {
+export function getBuddyTake(profile: BuddyProfile, latestPrompt: string, strategy: BuddyStrategy = {}): string {
   const context = latestPrompt.trim() || "the current chat";
-  return `${capitalize(profile.species)} buddy flags ${profile.rarity} risk handling on ${context}. Keep advice traceable and operator-safe.`;
+  const packLabel = strategy.pack?.label ?? "default pack";
+  const namespaceLabel = strategy.memoryNamespace?.label ?? "operator session";
+  return `${capitalize(profile.species)} buddy flags ${profile.rarity} risk handling on ${context}. Route advice through ${packLabel.toLowerCase()} and keep it anchored to ${namespaceLabel.toLowerCase()} memory.`;
 }
 
-export function getBuddySuggestions(profile: BuddyProfile, latestPrompt: string): BuddySuggestion[] {
+export function getBuddySuggestions(profile: BuddyProfile, latestPrompt: string, strategy: BuddyStrategy = {}): BuddySuggestion[] {
   const topic = latestPrompt.trim() || "this workflow";
   const species = capitalize(profile.species);
+  const roleLabels = strategy.pack?.roles.map((role) => role.label.toLowerCase()).join(", ") ?? "buddy review";
+  const namespaceLabel = strategy.memoryNamespace?.label ?? "operator session";
   return [
     {
       id: "risk-check",
       label: "Risk check",
-      prompt: `${species} buddy: list the top 3 operational risks for ${topic} and how to review them safely.`,
+      prompt: `${species} buddy: using the ${roleLabels} lens, list the top 3 operational risks for ${topic} and how to review them safely before writing to ${namespaceLabel.toLowerCase()}.`,
     },
     {
       id: "traceability",
       label: "Traceability",
-      prompt: `${species} buddy: identify the genealogy, batch, and approval records I should verify for ${topic}.`,
+      prompt: `${species} buddy: identify the genealogy, batch, and approval records I should verify for ${topic}, and note what belongs in ${namespaceLabel.toLowerCase()}.`,
     },
     {
       id: "handoff",
       label: "Handoff",
-      prompt: `${species} buddy: draft a concise operator handoff note for ${topic} with human review gates.`,
+      prompt: `${species} buddy: draft a concise operator handoff note for ${topic} with human review gates and pack it for ${strategy.pack?.label ?? "the active pack"}.`,
     },
   ];
 }

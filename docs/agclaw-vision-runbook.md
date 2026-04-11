@@ -37,6 +37,20 @@ $env:AGCLAW_SCREEN_VISION_API_KEY = "..."
 
 ## Startup
 
+One-command routed local stack from the repo root:
+
+```powershell
+Set-Location (git rev-parse --show-toplevel)
+.\scripts\start-agclaw-local.ps1 -EnableRoutedVision -PullVisionModels -StartLiteLLM
+```
+
+To launch the same stack and immediately rerun the promptfoo multimodal gate:
+
+```powershell
+Set-Location (git rev-parse --show-toplevel)
+.\scripts\start-agclaw-local.ps1 -EnableRoutedVision -PullVisionModels -RunVisionGate
+```
+
 ```powershell
 python -m agclaw_backend.server --host 127.0.0.1 --port 8008
 ```
