@@ -80,6 +80,29 @@ npm run dev
 
 Then open `http://127.0.0.1:3000`.
 
+For Android over Wi-Fi, bind the web server to the LAN interface instead:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+npm install
+$env:AGCLAW_BACKEND_URL = "http://127.0.0.1:8008"
+$env:AGCLAW_WEB_ROOT = ".."
+npm run dev:lan
+```
+
+Then open `http://<your-pc-lan-ip>:3000` on the Android device.
+
+For Android over USB with lower latency, keep the backend and web UI running locally and set up `adb reverse`:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+npm run android:usb:setup
+```
+
+Then open `http://127.0.0.1:3000` in Chrome on the Android device. The helper also reverses `8008`, `3100`, and `11500` for backend, mock-stack, and vision-runtime access.
+
 If you only want a fast mock-backed browser demo, skip the backend terminal and run:
 
 ```powershell
@@ -196,6 +219,26 @@ npm run dev
 
 Open `http://127.0.0.1:3000`.
 
+For Android devices on the same Wi-Fi network, run:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+$env:AGCLAW_BACKEND_URL = "http://127.0.0.1:8008"
+$env:AGCLAW_WEB_ROOT = ".."
+npm run dev:lan
+```
+
+For Android over USB, connect the phone, confirm it in `adb devices`, and run:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+npm run android:usb:setup
+```
+
+After that, open `http://127.0.0.1:3000` on the device. If you want desktop-side inspection, use `chrome://inspect/#devices` in desktop Chrome.
+
 If you want a quick mock-backed stack for browser testing, the Playwright launcher will start the backend in mock mode automatically:
 
 ```powershell
@@ -217,6 +260,56 @@ npm run e2e
 ```
 
 The Playwright configuration builds the web app and launches the local mock backend automatically.
+
+Optional Selenium smoke tests against a running UI:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+$env:AGCLAW_UI_URL = "http://127.0.0.1:3000"
+npm run selenium:smoke
+npm run selenium:smoke:mobile
+```
+
+Optional Appium smoke test against a USB-connected Android device running Chrome:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+$env:AGCLAW_UI_URL = "http://127.0.0.1:3000"
+$env:APPIUM_SERVER_URL = "http://127.0.0.1:4723"
+npm run appium:android:smoke
+```
+
+That Appium flow expects an Appium server and an authorized Android device. Set `ANDROID_UDID` if more than one device is connected.
+
+The same Appium script also works with an Android emulator if it appears in `adb devices` and has Chrome available.
+
+Optional BrowserStack cloud run using the same mobile smoke flow:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+$env:BROWSERSTACK_USERNAME = "<username>"
+$env:BROWSERSTACK_ACCESS_KEY = "<access-key>"
+$env:BROWSERSTACK_LOCAL = "true"
+$env:AGCLAW_UI_URL = "http://bs-local.com:3000"
+npm run browserstack:mobile:smoke
+```
+
+If the app is already publicly reachable, set `BROWSERSTACK_LOCAL=false` and point `AGCLAW_UI_URL` at that public URL instead.
+
+For a local Android emulator workflow, start an emulator from Android Studio or the `emulator` CLI, confirm it appears in `adb devices`, run an Appium server, and then use the same script:
+
+```powershell
+$repoRoot = git rev-parse --show-toplevel
+Set-Location (Join-Path $repoRoot "web")
+$env:AGCLAW_UI_URL = "http://10.0.2.2:3000"
+$env:APPIUM_SERVER_URL = "http://127.0.0.1:4723"
+npm run appium:android:smoke
+```
+
+Use `10.0.2.2` from the emulator when you are not using `adb reverse`; keep `127.0.0.1` for USB devices after `npm run android:usb:setup`.
 
 ## Run The MCP Explorer
 
