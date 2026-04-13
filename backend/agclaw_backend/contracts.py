@@ -140,6 +140,12 @@ class MesDocument:
     tags: list[str] = field(default_factory=list)
     dataset_id: str = ""
     dataset_version: str = ""
+    retrieval_score: float = 0.0
+    lexical_score: float = 0.0
+    semantic_score: float = 0.0
+    metadata_score: float = 0.0
+    matched_terms: list[str] = field(default_factory=list)
+    matched_tags: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -165,6 +171,9 @@ class MesRetrieveResponse:
     query: str
     results: list[MesDocument] = field(default_factory=list)
     datasets: list[MesDataset] = field(default_factory=list)
+    strategy: str = "hybrid-tfidf"
+    total_candidates: int = 0
+    applied_dataset_ids: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

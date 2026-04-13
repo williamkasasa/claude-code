@@ -80,6 +80,14 @@ Each dataset has:
 
 `POST /api/mes/retrieve` accepts optional `dataset_ids` to constrain retrieval.
 
+The retrieval path now uses a cached hybrid ranker that combines:
+
+- lexical term overlap
+- metadata boosts from dataset and domain filters
+- TF-IDF vector similarity across title, excerpt, tags, and dataset metadata
+
+Response items include `retrieval_score`, `lexical_score`, `semantic_score`, `metadata_score`, plus matched query terms and tags so the ranking stays inspectable.
+
 ## Vision validation runbook
 
 Validated local HMI vision configuration on this workstation:

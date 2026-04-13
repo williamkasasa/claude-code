@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 import json
+import math
 import os
 from functools import lru_cache
 from pathlib import Path
+import re
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -18,6 +21,46 @@ from .contracts import (
     ScreenInterpretRequest,
     ScreenInterpretResponse,
 )
+
+
+TOKEN_RE = re.compile(r"[a-z0-9]+(?:[-_/][a-z0-9]+)*")
+STOP_TERMS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class _IndexedMesDocument:
+    document: MesDocument
+    vector: dict[str, float]
+    norm: float
+    title_terms: frozenset[str]
+    tag_terms: frozenset[str]
+    searchable_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class _MesSearchIndex:
+    documents: tuple[_IndexedMesDocument, ...]
+    idf: dict[str, float]
 
 
 def _route_suffix(route_key: str) -> str:
@@ -93,6 +136,118 @@ def _load_reference_documents() -> list[MesDocument]:
                 )
             )
     return documents
+
+
+def _expanded_terms(text: str) -> list[str]:
+    terms: list[str] = []
+    for raw_token in TOKEN_RE.findall(text.lower()):
+        if raw_token in STOP_TERMS:
+            continue
+        terms.append(raw_token)
+        for fragment in re.split(r"[-_/]", raw_token):
+            if len(fragment) > 1 and fragment not in STOP_TERMS and fragment != raw_token:
+                terms.append(fragment)
+    return terms
+
+
+def _add_weighted_terms(counter: Counter[str], text: str, weight: float) -> None:
+    for term in _expanded_terms(text):
+        counter[term] += weight
+
+
+def _document_term_counter(document: MesDocument) -> Counter[str]:
+    counter: Counter[str] = Counter()
+    _add_weighted_terms(counter, document.title, 3.0)
+    _add_weighted_terms(counter, document.excerpt, 2.0)
+    _add_weighted_terms(counter, " ".join(document.tags), 2.5)
+    _add_weighted_terms(counter, document.source, 1.0)
+    _add_weighted_terms(counter, document.dataset_id, 1.5)
+    _add_weighted_terms(counter, document.dataset_version, 0.5)
+    return counter
+
+
+def _build_query_vector(query_terms: list[str], domain_terms: set[str], idf: dict[str, float]) -> tuple[dict[str, float], float]:
+    weighted_terms: Counter[str] = Counter(query_terms)
+    for term in domain_terms:
+        weighted_terms[term] += 0.75
+    vector = {term: weight * idf.get(term, 1.0) for term, weight in weighted_terms.items()}
+    norm = math.sqrt(sum(weight * weight for weight in vector.values()))
+    return vector, norm
+
+
+def _cosine_similarity(query_vector: dict[str, float], query_norm: float, document_vector: dict[str, float], document_norm: float) -> float:
+    if query_norm == 0 or document_norm == 0:
+        return 0.0
+    dot_product = sum(query_vector.get(term, 0.0) * document_vector.get(term, 0.0) for term in query_vector)
+    if dot_product <= 0:
+        return 0.0
+    return dot_product / (query_norm * document_norm)
+
+
+def _annotated_document(
+    document: MesDocument,
+    *,
+    retrieval_score: float,
+    lexical_score: float,
+    semantic_score: float,
+    metadata_score: float,
+    matched_terms: list[str],
+    matched_tags: list[str],
+) -> MesDocument:
+    return MesDocument(
+        source=document.source,
+        title=document.title,
+        excerpt=document.excerpt,
+        tags=list(document.tags),
+        dataset_id=document.dataset_id,
+        dataset_version=document.dataset_version,
+        retrieval_score=round(retrieval_score, 4),
+        lexical_score=round(lexical_score, 4),
+        semantic_score=round(semantic_score, 4),
+        metadata_score=round(metadata_score, 4),
+        matched_terms=matched_terms,
+        matched_tags=matched_tags,
+    )
+
+
+@lru_cache(maxsize=1)
+def _load_search_index() -> _MesSearchIndex:
+    documents = _load_reference_documents()
+    document_frequencies: Counter[str] = Counter()
+    document_counters = [_document_term_counter(document) for document in documents]
+    for counter in document_counters:
+        document_frequencies.update(counter.keys())
+
+    total_documents = max(1, len(documents))
+    idf = {
+        term: 1.0 + math.log((1 + total_documents) / (1 + frequency))
+        for term, frequency in document_frequencies.items()
+    }
+
+    indexed_documents: list[_IndexedMesDocument] = []
+    for document, counter in zip(documents, document_counters, strict=True):
+        vector = {term: weight * idf.get(term, 1.0) for term, weight in counter.items()}
+        norm = math.sqrt(sum(weight * weight for weight in vector.values()))
+        indexed_documents.append(
+            _IndexedMesDocument(
+                document=document,
+                vector=vector,
+                norm=norm,
+                title_terms=frozenset(_expanded_terms(document.title)),
+                tag_terms=frozenset(_expanded_terms(" ".join(document.tags))),
+                searchable_text=" ".join(
+                    [
+                        document.title,
+                        document.excerpt,
+                        " ".join(document.tags),
+                        document.dataset_id,
+                        document.dataset_version,
+                    ]
+                ).lower(),
+            )
+        )
+
+    return _MesSearchIndex(documents=tuple(indexed_documents), idf=idf)
 
 
 def list_mes_datasets() -> list[MesDataset]:
@@ -187,36 +342,90 @@ def slim_log(request: LogSlimRequest) -> LogSlimResponse:
 
 
 def retrieve_mes_context(request: MesRetrieveRequest) -> MesRetrieveResponse:
-    query_terms = {term.lower() for term in request.query.split() if term.strip()}
-    domains = {domain.lower() for domain in request.domains}
+    query_terms = _expanded_terms(request.query)
+    query_term_set = set(query_terms)
+    domain_terms = {term for domain in request.domains for term in _expanded_terms(domain)}
     dataset_filter = {dataset_id.lower() for dataset_id in request.dataset_ids}
     datasets = list_mes_datasets()
-    documents = _load_reference_documents()
+    search_index = _load_search_index()
+    query_vector, query_norm = _build_query_vector(query_terms, domain_terms, search_index.idf)
 
-    scored: list[tuple[int, MesDocument]] = []
-    for document in documents:
+    scored: list[MesDocument] = []
+    for indexed_document in search_index.documents:
+        document = indexed_document.document
         if dataset_filter and document.dataset_id.lower() not in dataset_filter:
             continue
-        haystack = " ".join(
-            [
-                document.title,
-                document.excerpt,
-                " ".join(document.tags),
-                document.dataset_id,
-                document.dataset_version,
-            ]
-        ).lower()
-        score = sum(1 for term in query_terms if term in haystack)
-        if domains and not domains.intersection({tag.lower() for tag in document.tags}):
-            score -= 1
-        if score > 0 or not query_terms:
-            scored.append((score, document))
 
-    scored.sort(key=lambda item: item[0], reverse=True)
-    results = [document for _, document in scored[: max(1, request.limit)]]
+        matched_terms = sorted(term for term in query_term_set if term in indexed_document.vector)
+        matched_tags = sorted(domain_terms.intersection(indexed_document.tag_terms))
+
+        lexical_coverage = len(matched_terms) / max(1, len(query_term_set)) if query_term_set else 0.0
+        title_overlap = len(query_term_set.intersection(indexed_document.title_terms)) / max(1, len(query_term_set)) if query_term_set else 0.0
+        phrase_boost = 0.35 if request.query.strip() and request.query.lower() in indexed_document.searchable_text else 0.0
+        lexical_score = lexical_coverage + (0.25 * title_overlap) + phrase_boost
+
+        semantic_score = _cosine_similarity(query_vector, query_norm, indexed_document.vector, indexed_document.norm)
+
+        metadata_score = 0.0
+        if dataset_filter and document.dataset_id.lower() in dataset_filter:
+            metadata_score += 0.25
+        if domain_terms:
+            if matched_tags:
+                metadata_score += 0.2 + (0.05 * min(3, len(matched_tags)))
+            else:
+                metadata_score -= 0.05
+
+        retrieval_score = (lexical_score * 0.45) + (semantic_score * 0.40) + (metadata_score * 0.15)
+
+        if retrieval_score > 0 or not query_term_set:
+            scored.append(
+                _annotated_document(
+                    document,
+                    retrieval_score=retrieval_score,
+                    lexical_score=lexical_score,
+                    semantic_score=semantic_score,
+                    metadata_score=metadata_score,
+                    matched_terms=matched_terms,
+                    matched_tags=matched_tags,
+                )
+            )
+
+    if not scored and dataset_filter:
+        for indexed_document in search_index.documents:
+            document = indexed_document.document
+            if document.dataset_id.lower() in dataset_filter:
+                scored.append(
+                    _annotated_document(
+                        document,
+                        retrieval_score=0.25,
+                        lexical_score=0.0,
+                        semantic_score=0.0,
+                        metadata_score=0.25,
+                        matched_terms=[],
+                        matched_tags=[],
+                    )
+                )
+
+    scored.sort(
+        key=lambda document: (
+            document.retrieval_score,
+            document.semantic_score,
+            document.lexical_score,
+            document.title.lower(),
+        ),
+        reverse=True,
+    )
+    results = scored[: max(1, request.limit)]
     visible_dataset_ids = {document.dataset_id for document in results}
     visible_datasets = [dataset for dataset in datasets if dataset.id in visible_dataset_ids or dataset.id in request.dataset_ids]
-    return MesRetrieveResponse(query=request.query, results=results, datasets=visible_datasets)
+    return MesRetrieveResponse(
+        query=request.query,
+        results=results,
+        datasets=visible_datasets,
+        strategy="hybrid-tfidf",
+        total_candidates=len(scored),
+        applied_dataset_ids=sorted(dataset_filter),
+    )
 
 
 def interpret_screen(request: ScreenInterpretRequest) -> ScreenInterpretResponse:

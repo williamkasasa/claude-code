@@ -171,8 +171,13 @@ class BackendHttpApiTests(unittest.TestCase):
         )
         with urlopen(request, timeout=3) as response:
             payload = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(payload["strategy"], "hybrid-tfidf")
+        self.assertGreaterEqual(payload["total_candidates"], 1)
         self.assertGreaterEqual(len(payload["results"]), 1)
         first_result = payload["results"][0]
+        self.assertGreater(first_result["retrieval_score"], 0)
+        self.assertGreaterEqual(first_result["semantic_score"], 0)
+        self.assertTrue(any(term in {"genealogy", "traceability"} for term in first_result["matched_terms"]))
         self.assertIn("isa-95", [tag.lower() for tag in first_result["tags"]])
         self.assertTrue(
             "genealogy" in first_result["title"].lower()
@@ -181,6 +186,21 @@ class BackendHttpApiTests(unittest.TestCase):
         self.assertTrue(any("traceability" in item["excerpt"].lower() or "traceability" in item["title"].lower() for item in payload["results"]))
         self.assertTrue(all(item["dataset_id"] == "isa95-core" for item in payload["results"]))
         self.assertGreaterEqual(len(payload["datasets"]), 1)
+
+    def test_mes_retrieve_endpoint_hybrid_scores_quality_release_content(self) -> None:
+        request = Request(
+            self._url("/api/mes/retrieve"),
+            data=json.dumps({"query": "reviewer identity release approvals", "domains": ["quality"], "dataset_ids": ["isa95-core"], "limit": 1}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(request, timeout=3) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        self.assertEqual(payload["results"][0]["title"], "Quality hold and release workflow")
+        self.assertIn("quality", payload["results"][0]["matched_tags"])
+        self.assertGreater(payload["results"][0]["lexical_score"], 0)
+        self.assertGreater(payload["results"][0]["retrieval_score"], 0)
 
     def test_orchestrate_endpoint(self) -> None:
         request = Request(

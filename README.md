@@ -12,7 +12,9 @@ This repository is the AG-Claw research workspace. It combines a clean-room back
 Read these first before extending the system:
 
 - `docs/agclaw-clean-room-boundary.md`
+- `docs/agclaw-capability-gap-matrix.md`
 - `docs/agclaw-local-runbook.md`
+- `docs/agclaw-mobile-audit.md`
 - `docs/agclaw-subsystem-migration-matrix.md`
 - `docs/agclaw-replacement-backlog.md`
 - `docs/agclaw-naming-inventory.md`
@@ -35,10 +37,12 @@ These integrations are live today when you run the local stack:
 - `@chenglou/pretext` is installed in `web/` and drives measured chat input sizing, preview truncation helpers, and virtualized chat message height estimation.
 - `promptfoo` is installed in `promptfoo/` and wired for routed local multimodal gate runs.
 - `impeccable` is installed in `web/` as a local UI audit tool with repo presets; it is not part of the production runtime path.
+- the clean-room backend now exposes hybrid MES retrieval scoring with lexical, metadata, and TF-IDF vector signals.
 - `agency-agents` ideas are surfaced as selectable agent packs in the settings UI, buddy flows, research orchestration, and persisted artifacts.
 - `OpenViking` ideas are surfaced as memory namespaces and commit modes in the settings UI, orchestration metadata, and investigation bundles.
 - `MiroFish` ideas are surfaced as staged workflow modes in the research workbench and orchestration outputs.
 - `nanochat` ideas are surfaced as the `nano-chat` pack, nano briefs, and carry-forward bundle summaries.
+- the chat shell now switches to mobile-specific navigation, composer, and file-viewer overlays on small screens.
 - `heretic` remains intentionally excluded.
 
 ## Quick Start: See The UI
