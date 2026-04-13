@@ -3,28 +3,41 @@
 import { FlaskConical, Keyboard, Settings2, Sparkles } from "lucide-react";
 import { useChatStore } from "@/lib/store";
 
-export function QuickActions() {
+interface QuickActionsProps {
+  onNavigate?: () => void;
+}
+
+export function QuickActions({ onNavigate }: QuickActionsProps) {
   const { openResearch, openSettings, openSearch } = useChatStore();
 
   return (
     <div className="border-t border-surface-800 p-2">
       <div className="grid grid-cols-1 gap-2">
         <button
-          onClick={openSearch}
+          onClick={() => {
+            openSearch();
+            onNavigate?.();
+          }}
           className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
         >
           <Sparkles className="h-4 w-4 text-brand-400" aria-hidden="true" />
           Search workspace
         </button>
         <button
-          onClick={openSettings}
+          onClick={() => {
+            openSettings();
+            onNavigate?.();
+          }}
           className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
         >
           <Settings2 className="h-4 w-4 text-surface-400" aria-hidden="true" />
           Open settings
         </button>
         <button
-          onClick={openResearch}
+          onClick={() => {
+            openResearch();
+            onNavigate?.();
+          }}
           className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
         >
           <FlaskConical className="h-4 w-4 text-emerald-400" aria-hidden="true" />

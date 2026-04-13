@@ -56,7 +56,7 @@ function TreeNode({
   );
 }
 
-export function FileExplorer() {
+export function FileExplorer({ onNavigate }: { onNavigate?: () => void }) {
   const loadAndOpen = useFileViewerStore((state) => state.loadAndOpen);
   const [entries, setEntries] = useState<FileNode[]>([]);
   const [absoluteRoot, setAbsoluteRoot] = useState("");
@@ -142,7 +142,10 @@ export function FileExplorer() {
                 node={entry}
                 expanded={expanded}
                 onToggle={toggleNode}
-                onOpen={(path) => void loadAndOpen(path)}
+                onOpen={(path) => {
+                  void loadAndOpen(path);
+                  onNavigate?.();
+                }}
               />
             ))
           )}

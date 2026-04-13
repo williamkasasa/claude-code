@@ -22,7 +22,13 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /mobile-shell\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-chrome",
+      testMatch: /mobile-shell\.spec\.ts/,
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });

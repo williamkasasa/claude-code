@@ -16,6 +16,7 @@ const COLLAPSED_WIDTH = 60;
 type SidebarTab = "chats" | "history" | "files" | "settings";
 interface SidebarProps {
   onNavigate?: () => void;
+  mode?: "desktop" | "mobile";
 }
 
 const TABS: Array<{ id: SidebarTab; icon: React.ElementType; label: string }> = [
@@ -24,7 +25,7 @@ const TABS: Array<{ id: SidebarTab; icon: React.ElementType; label: string }> = 
   { id: "settings", icon: Settings, label: "Settings" },
 ];
 
-export function Sidebar({ onNavigate }: SidebarProps) {
+export function Sidebar({ onNavigate, mode = "desktop" }: SidebarProps) {
   const {
     sidebarOpen,
     sidebarWidth,
@@ -37,6 +38,8 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const isMobileMode = mode === "mobile";
+  const isExpanded = isMobileMode || sidebarOpen;
 
   const startResize = useCallback(
     (e: React.MouseEvent) => {
@@ -82,19 +85,19 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       onNavigate?.();
       return;
     }
-    if (!sidebarOpen) toggleSidebar();
+    if (!isExpanded) toggleSidebar();
     setSidebarTab(id);
-    onNavigate?.();
   };
 
   return (
     <motion.aside
       className={cn(
-        "hidden md:flex flex-col h-full bg-surface-900 border-r border-surface-800",
+        "flex flex-col h-full bg-surface-900 border-r border-surface-800",
         "relative flex-shrink-0 z-20",
+        !isMobileMode && "hidden md:flex",
         isResizing && "select-none"
       )}
-      animate={{ width: sidebarOpen ? sidebarWidth : COLLAPSED_WIDTH }}
+      animate={{ width: isMobileMode ? "100%" : (isExpanded ? sidebarWidth : COLLAPSED_WIDTH) }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
       aria-label="Navigation sidebar"
     >
@@ -102,10 +105,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       <div
         className={cn(
           "flex border-b border-surface-800 flex-shrink-0",
-          sidebarOpen ? "flex-row items-center" : "flex-col items-center py-2 gap-1"
+          isExpanded ? "flex-row items-center" : "flex-col items-center py-2 gap-1"
         )}
       >
-        {sidebarOpen && (
+        {isExpanded && (
           <span className="flex-1 text-sm font-semibold text-surface-100 px-4 py-3 truncate">
             AG-Claw
           </span>
@@ -114,7 +117,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <div
           className={cn(
             "flex",
-            sidebarOpen
+            isExpanded
               ? "flex-row items-center gap-0.5 pr-1 py-1.5"
               : "flex-col w-full px-1.5 gap-0.5"
           )}
@@ -127,38 +130,40 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               aria-label={label}
               className={cn(
                 "flex items-center gap-2 rounded-md text-xs font-medium transition-colors",
-                sidebarOpen ? "px-2.5 py-1.5" : "w-full justify-center px-0 py-2",
-                sidebarOpen && sidebarTab === id && id !== "settings"
+                isExpanded ? "px-2.5 py-1.5" : "w-full justify-center px-0 py-2",
+                isExpanded && sidebarTab === id && id !== "settings"
                   ? "bg-surface-800 text-surface-100"
                   : "text-surface-500 hover:text-surface-300 hover:bg-surface-800/60"
               )}
             >
               <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              {sidebarOpen && <span>{label}</span>}
+              {isExpanded && <span>{label}</span>}
             </button>
           ))}
         </div>
 
-        <button
-          onClick={toggleSidebar}
-          title={sidebarOpen ? "Collapse sidebar (âŒ˜B)" : "Expand sidebar (âŒ˜B)"}
-          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          className={cn(
-            "p-2 rounded-md text-surface-500 hover:text-surface-300 hover:bg-surface-800/60 transition-colors",
-            sidebarOpen ? "mr-1" : "my-0.5"
-          )}
-        >
-          {sidebarOpen ? (
-            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <ChevronRight className="w-4 h-4" aria-hidden="true" />
-          )}
-        </button>
+        {!isMobileMode && (
+          <button
+            onClick={toggleSidebar}
+            title={isExpanded ? "Collapse sidebar (âŒ˜B)" : "Expand sidebar (âŒ˜B)"}
+            aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            className={cn(
+              "p-2 rounded-md text-surface-500 hover:text-surface-300 hover:bg-surface-800/60 transition-colors",
+              isExpanded ? "mr-1" : "my-0.5"
+            )}
+          >
+            {isExpanded ? (
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Tab content */}
       <AnimatePresence mode="wait">
-        {sidebarOpen && (
+        {isExpanded && (
           <motion.div
             key={sidebarTab}
             className="flex-1 flex flex-col min-h-0 overflow-hidden"
@@ -167,16 +172,16 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
           >
-            {(sidebarTab === "chats" || sidebarTab === "history") && <ChatHistory />}
-            {sidebarTab === "files" && <FileExplorer />}
+            {(sidebarTab === "chats" || sidebarTab === "history") && <ChatHistory onNavigate={onNavigate} />}
+            {sidebarTab === "files" && <FileExplorer onNavigate={onNavigate} />}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {sidebarOpen && <QuickActions />}
+      {isExpanded && <QuickActions onNavigate={onNavigate} />}
 
       {/* Drag-to-resize handle */}
-      {sidebarOpen && (
+      {!isMobileMode && isExpanded && (
         <div
           onMouseDown={startResize}
           role="separator"

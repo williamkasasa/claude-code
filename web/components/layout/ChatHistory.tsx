@@ -4,6 +4,10 @@ import { MessageSquarePlus, Pin } from "lucide-react";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+interface ChatHistoryProps {
+  onNavigate?: () => void;
+}
+
 function formatDate(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -11,7 +15,7 @@ function formatDate(timestamp: number) {
   }).format(timestamp);
 }
 
-export function ChatHistory() {
+export function ChatHistory({ onNavigate }: ChatHistoryProps) {
   const {
     conversations,
     activeConversationId,
@@ -33,7 +37,10 @@ export function ChatHistory() {
     <div className="flex h-full flex-col">
       <div className="border-b border-surface-800 p-3">
         <button
-          onClick={createConversation}
+          onClick={() => {
+            createConversation();
+            onNavigate?.();
+          }}
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500"
         >
           <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
@@ -68,7 +75,10 @@ export function ChatHistory() {
                   )}
                 >
                   <button
-                    onClick={() => setActiveConversation(conversation.id)}
+                    onClick={() => {
+                      setActiveConversation(conversation.id);
+                      onNavigate?.();
+                    }}
                     className="min-w-0 flex-1 text-left"
                   >
                     <div className="truncate text-sm font-medium text-surface-100">
